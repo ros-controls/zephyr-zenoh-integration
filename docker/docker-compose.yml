@@ -1,0 +1,19 @@
+services:
+  dev-env:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zephyr-zenoh-dev
+    volumes:
+      # ros2 workspace mapping
+      - ../zephyr_zenoh_transport:/ros2_ws/src/zephyr_zenoh_transport
+      - ../ros_hardware_interface:/ros2_ws/src/ros_hardware_interface
+
+      #zephyr workspace mapping
+      - ../zephyr_zenoh_transport:/zephyr_ws/zephyr_zenoh_transport   
+      - ../zephyr_ros_client:/zephyr_ws/zephyr_ros_client
+
+    stdin_open: true
+    tty: true
+    network_mode: host
+    privileged: true # Required for flashing hardware (USB access)
