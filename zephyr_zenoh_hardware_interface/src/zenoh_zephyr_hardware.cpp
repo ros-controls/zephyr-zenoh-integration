@@ -19,6 +19,19 @@ CallbackReturn ZenohZephyrHardware::on_init(const hardware_interface::HardwareCo
     return CallbackReturn::ERROR;
   }
 
+  try {
+    zenoh_endpoint_ = info_.hardware_parameters.at("zenoh_endpoint");
+    state_topic_    = info_.hardware_parameters.at("state_topic");
+    command_topic_  = info_.hardware_parameters.at("command_topic");
+    zenoh_mode_     = info_.hardware_parameters.count("zenoh_mode")
+                      ? info_.hardware_parameters.at("zenoh_mode")
+                      : "client";
+  } catch (const std::out_of_range & e) {
+    RCLCPP_FATAL(rclcpp::get_logger("ZenohZephyrHardware"),
+                "Missing required URDF parameter");
+    return CallbackReturn::ERROR;
+  }
+
   hw_states_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
   hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
   hw_state_buffer_.resize(info_.joints.size(), 0.0);

@@ -16,6 +16,7 @@
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp_lifecycle</depend>
+  <depend>zenoh_cpp_vendor</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

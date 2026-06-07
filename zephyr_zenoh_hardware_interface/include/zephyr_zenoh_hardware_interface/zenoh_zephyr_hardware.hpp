@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <vector>
+#include <string>
 
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/handle.hpp"
@@ -11,6 +12,7 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include <zenoh.hxx>
 
 namespace zephyr_zenoh
 {
@@ -42,6 +44,10 @@ private:
   std::vector<double> hw_states_;
   std::vector<double> hw_state_buffer_;
   mutable std::mutex data_mutex_;
+  std::string zenoh_endpoint_;
+  std::string zenoh_mode_;
+  std::string state_topic_;
+  std::string command_topic_;
 };
 
 }  // namespace zephyr_zenoh

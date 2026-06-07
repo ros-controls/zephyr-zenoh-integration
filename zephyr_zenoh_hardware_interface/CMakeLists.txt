@@ -11,6 +11,7 @@ find_package(hardware_interface REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
+find_package(zenoh_cpp_vendor REQUIRED)
 
 add_library(zephyr_zenoh_hardware_interface SHARED
   src/zenoh_zephyr_hardware.cpp
@@ -26,6 +27,7 @@ target_link_libraries(zephyr_zenoh_hardware_interface
     pluginlib::pluginlib
     rclcpp::rclcpp
     rclcpp_lifecycle::rclcpp_lifecycle
+    zenohcxx::zenohc
 )
 
 pluginlib_export_plugin_description_file(hardware_interface zenoh_zephyr_hardware_interface.xml)
