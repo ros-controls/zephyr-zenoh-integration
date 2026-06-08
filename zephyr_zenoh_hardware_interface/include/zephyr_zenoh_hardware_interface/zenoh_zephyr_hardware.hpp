@@ -2,17 +2,17 @@
 #define ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
 
 #include <mutex>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "hardware_interface/system_interface.hpp"
+#include <zenoh.hxx>
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
+#include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
-#include <zenoh.hxx>
 
 namespace zephyr_zenoh
 {
@@ -23,7 +23,8 @@ class ZenohZephyrHardware : public hardware_interface::SystemInterface
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(ZenohZephyrHardware)
 
-  CallbackReturn on_init(const hardware_interface::HardwareComponentInterfaceParams & params) override;
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override;
 
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
