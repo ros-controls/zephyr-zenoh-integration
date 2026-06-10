@@ -4,7 +4,7 @@ This folder contains the Docker and Compose configurations to ensure a reproduci
 
 ## Quick Start
 1. Start the environment: `docker compose up -d`
-2. Access the Docker environment: `docker compose exec zenoh-zephyr-dev bash`
+2. Access the Docker environment: `docker compose exec dev-env bash`
 
 ## Mount Points
 - `zephyr_zenoh_transport/` is shared across both containers to ensure serialization logic is always in sync.

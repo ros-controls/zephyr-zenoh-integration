@@ -7,7 +7,7 @@ services:
     volumes:
       # ros2 workspace mapping
       - ../zephyr_zenoh_transport:/ros2_ws/src/zephyr_zenoh_transport
-      - ../ros_hardware_interface:/ros2_ws/src/ros_hardware_interface
+      - ../zephyr_zenoh_hardware_interface:/ros2_ws/src/zephyr_zenoh_hardware_interface
 
       #zephyr workspace mapping
       - ../zephyr_zenoh_transport:/zephyr_ws/zephyr_zenoh_transport
