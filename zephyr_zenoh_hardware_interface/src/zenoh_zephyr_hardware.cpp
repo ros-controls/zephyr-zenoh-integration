@@ -83,13 +83,26 @@ std::vector<hardware_interface::CommandInterface> ZenohZephyrHardware::export_co
 
 CallbackReturn ZenohZephyrHardware::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  for (size_t i = 0; i < hw_states_.size(); i++)
+  try
   {
-    if (std::isnan(hw_states_[i]))
+    auto config = zenoh::Config::create_default();
+    config.insert_json5("connect/endpoints", "[\"" + zenoh_endpoint_ + "\"]");
+    config.insert_json5("mode", "\"" + zenoh_mode_ + "\"");
+    session_ = std::make_unique<zenoh::Session>(std::move(config));
+
+    for (size_t i = 0; i < hw_states_.size(); i++)
     {
-      hw_states_[i] = 0;
-      hw_commands_[i] = 0;
+      if (std::isnan(hw_states_[i]))
+      {
+        hw_states_[i] = 0;
+        hw_commands_[i] = 0;
+      }
     }
+  }
+  catch (const std::exception & e)
+  {
+    RCLCPP_FATAL(rclcpp::get_logger("ZenohZephyrHardware"), "Zenoh failed: %s", e.what());
+    return CallbackReturn::ERROR;
   }
   RCLCPP_INFO(rclcpp::get_logger("ZenohZephyrHardware"), "Hardware activated!");
   return CallbackReturn::SUCCESS;
@@ -98,6 +111,7 @@ CallbackReturn ZenohZephyrHardware::on_activate(const rclcpp_lifecycle::State & 
 CallbackReturn ZenohZephyrHardware::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  session_.reset();
   RCLCPP_INFO(rclcpp::get_logger("ZenohZephyrHardware"), "Hardware deactivated.");
   return CallbackReturn::SUCCESS;
 }

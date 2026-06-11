@@ -15,6 +15,7 @@
 #ifndef ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
 #define ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -55,6 +56,7 @@ public:
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
+  std::unique_ptr<zenoh::Session> session_;
   std::vector<double> hw_commands_;
   std::vector<double> hw_states_;
   std::vector<double> hw_state_buffer_;
