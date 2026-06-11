@@ -1,21 +1,18 @@
 services:
   dev-env:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: zephyr-zenoh-dev
     volumes:
-      # dev workspace mapping
-      - "/c/Users/Admin/dev_ws/zephyr_ws:/zephyr_ws"
-      - "/c/Users/Admin/dev_ws/ros2_ws:/ros2_ws"
 
       # ros2 workspace mapping
-      - "../zephyr_zenoh_transport:/ros2_ws/src/zephyr_zenoh_transport"
-      - "../zephyr_zenoh_hardware_interface:/ros2_ws/src/zephyr_zenoh_hardware_interface"
+      - zephyr_zenoh_transport:/ros2_ws/src/zephyr_zenoh_transport
+      - zephyr_zenoh_hardware_interface:/ros2_ws/src/zephyr_zenoh_hardware_interface
 
       #zephyr workspace mapping
-      - "../zephyr_zenoh_transport:/zephyr_ws/zephyr_zenoh_transport"
-      - "../zephyr_ros_client:/zephyr_ws/zephyr_ros_client"
+      - zephyr_zenoh_transport:/zephyr_ws/zephyr_zenoh_transport
+      - zephyr_ros_client:/zephyr_ws/zephyr_ros_client
 
     stdin_open: true
     tty: true
