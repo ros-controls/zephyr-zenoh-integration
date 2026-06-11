@@ -25,21 +25,28 @@ WORKDIR /zephyr_ws
 RUN west init . && west update && west zephyr-export
 
 # Install Zephyr SDK (targeting ESP32 and ARM)
-RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64.tar.xz \
-    && tar xf zephyr-sdk-0.16.8_linux-x86_64.tar.xz \
-    && cd zephyr-sdk-0.16.8 && ./setup.sh -t espressif -t arm-zephyr-eabi -c -h \
-    && cd .. && rm zephyr-sdk-0.16.8_linux-x86_64.tar.xz
+RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.1/zephyr-sdk-1.0.1_linux-x86_64_gnu.tar.xz \
+    && tar xf zephyr-sdk-1.0.1_linux-x86_64_gnu.tar.xz \
+    && cd zephyr-sdk-1.0.1 && ./setup.sh \
+    && cd .. && rm zephyr-sdk-1.0.1_linux-x86_64_gnu.tar.xz
+    
+WORKDIR /zephyr_ws
+RUN west update
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV PATH="/zephyr_ws/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin:${PATH}"
+ENV PATH="/zephyr_ws/zephyr-sdk-1.0.1/arm-zephyr-eabi/bin:/zephyr_ws/zephyr-sdk-1.0.1/xtensa-espressif_esp32s3_zephyr-elf/bin:${PATH}"
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Copy python requirements from zephyr and install
-RUN pip3 install --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
+RUN pip3 freeze > /zephyr_ws/requirements.txt
+RUN pip3 install --break-system-packages -r /zephyr_ws/requirements.txt
 
 # Set up ROS 2 workspace structure
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
 
-CMD ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && exec /bin/bash"]
+RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+CMD ["/bin/bash"]
+
+WORKDIR /
