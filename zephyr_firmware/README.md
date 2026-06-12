@@ -1,4 +1,4 @@
-# Zephyr ROS Client
+# Zephyr Firmware
 
 The embedded client library for Zephyr RTOS that provides a high-level API for ROS 2 communication.
 
