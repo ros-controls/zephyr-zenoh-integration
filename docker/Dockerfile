@@ -22,24 +22,30 @@ RUN pip3 install --break-system-packages west
 
 # Set up Zephyr workspace
 WORKDIR /zephyr_ws
-RUN west init . && west update && west zephyr-export
+RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0 . && west update && west zephyr-export
 
-# Install Zephyr SDK (targeting ESP32 and ARM)
-RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64.tar.xz \
-    && tar xf zephyr-sdk-0.16.8_linux-x86_64.tar.xz \
-    && cd zephyr-sdk-0.16.8 && ./setup.sh -t espressif -t arm-zephyr-eabi -c -h \
-    && cd .. && rm zephyr-sdk-0.16.8_linux-x86_64.tar.xz
+# Copy python requirements from zephyr and install
+RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
+
+# Install Zephyr SDK(MINIMAL)
+RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
+    && tar xf zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
+    && rm zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
+    && cd zephyr-sdk-0.16.8 \
+    && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV PATH="/zephyr_ws/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin:${PATH}"
+ENV PATH="/zephyr_ws/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin:/zephyr_ws/zephyr-sdk-0.16.8/xtensa-espressif_esp32_zephyr-elf/bin:/zephyr_ws/zephyr-sdk-0.16.8/xtensa-espressif_esp32s3_zephyr-elf/bin:${PATH}"
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
-
-# Copy python requirements from zephyr and install
-RUN pip3 install --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
 
 # Set up ROS 2 workspace structure
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
+
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc && \
+    echo "source /zephyr_ws/zephyr/zephyr-env.sh" >> /root/.bashrc
+
+RUN usermod -a -G dialout root
 
 CMD ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && exec /bin/bash"]
