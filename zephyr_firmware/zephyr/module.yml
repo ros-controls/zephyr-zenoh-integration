@@ -1,0 +1,6 @@
+name: zephyr-firmware
+
+build:
+  cmake: .
+  depends:
+    - zenoh-pico
