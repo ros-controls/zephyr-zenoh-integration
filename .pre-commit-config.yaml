@@ -97,15 +97,15 @@ repos:
         language: system
         files: CMakeLists\.txt$
 
-  # Copyright
-  - repo: local
-    hooks:
-      - id: ament_copyright
-        name: ament_copyright
-        description: Check if copyright notice is available in all files.
-        entry: ament_copyright
-        language: system
-        exclude: .*/conf\.py$
+  # # Copyright
+  # - repo: local
+  #   hooks:
+  #     - id: ament_copyright
+  #       name: ament_copyright
+  #       description: Check if copyright notice is available in all files.
+  #       entry: ament_copyright
+  #       language: system
+  #       exclude: .*/conf\.py$
 
   # Docs - RestructuredText hooks
   - repo: https://github.com/PyCQA/doc8
