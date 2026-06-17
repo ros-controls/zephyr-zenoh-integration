@@ -32,8 +32,6 @@ target_include_directories(app PRIVATE include)
 
 
 
-
-
 ### As a library
 
 # zephyr_library()

@@ -97,11 +97,7 @@ repos:
         language: system
         files: CMakeLists\.txt$
 
-<<<<<<< zephyr-firmware
   # Copyright
-=======
-  # # Copyright
->>>>>>> master
   # - repo: local
   #   hooks:
   #     - id: ament_copyright
