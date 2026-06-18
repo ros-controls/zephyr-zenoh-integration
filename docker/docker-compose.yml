@@ -5,13 +5,14 @@ services:
       dockerfile: docker/Dockerfile
     container_name: zephyr-zenoh-dev
     volumes:
-      # --- ROS 2 Workspace Volume Mounts ---
-      - ../zephyr_zenoh_transport:/ros2_ws/src/zephyr_zenoh_transport
-      - ../zephyr_zenoh_hardware_interface:/ros2_ws/src/zephyr_zenoh_hardware_interface
+      # --- ROS 2 Workspace (Ubuntu/Host Side) ---
+      - ../zenbedded_transport:/ros2_ws/src/zenbedded_transport
+      - ../zenbedded_hardware_interface:/ros2_ws/src/zenbedded_hardware_interface
 
-      # --- Zephyr RTOS Workspace Volume Mounts ---
-      - ../zephyr_zenoh_transport:/zephyr_ws/zephyr_zenoh_transport
-      - ../zephyr_firmware:/zephyr_ws/zephyr_firmware
+      # --- Zephyr RTOS Workspace (MCU Side) ---
+      - ../zenbedded_transport:/zephyr_ws/zenbedded_transport
+      - ../zenbedded_rcl:/zephyr_ws/zenbedded_rcl
+      - ../demos:/zephyr_ws/demos
 
     stdin_open: true
     tty: true
