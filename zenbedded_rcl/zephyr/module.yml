@@ -1,4 +1,4 @@
-name: zenbedded_firmware
+name: zenbedded_rcl
 
 build:
   cmake: .

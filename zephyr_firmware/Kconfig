@@ -1,3 +1,0 @@
-mainmenu "zenbedded config"
-
-source "Kconfig.zephyr"
