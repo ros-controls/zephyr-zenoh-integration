@@ -68,44 +68,43 @@ repos:
       - id: clang-format
         args: ['-fallback-style=none', '-i']
 
-  # - repo: local
-  #   hooks:
-  #     - id: ament_cppcheck
-  #       name: ament_cppcheck
-  #       description: Static code analysis of C/C++ files.
-  #       entry: env AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1 ament_cppcheck
-  #       language: system
-  #       files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
+  - repo: local
+    hooks:
+      - id: ament_copyright
+        name: Auto-add ROS 2 Copyright and License
+        description: Check if copyright notice is available in all files and auto adds them.
+        entry: ament_copyright --add-missing "Open Source Robotics Foundation, Inc." apache2
+        language: system
+        exclude: ^(build|install|log|opt)/|.*/conf\.py$
 
-  # - repo: local
-  #   hooks:
-  #     - id: ament_cpplint
-  #       name: ament_cpplint
-  #       description: Static code analysis of C/C++ files.
-  #       entry: ament_cpplint
-  #       language: system
-  #       files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
-  #       args: ["--linelength=100", "--filter=-whitespace/newline"]
+  - repo: local
+    hooks:
+      - id: ament_cppcheck
+        name: ament_cppcheck
+        description: Static code analysis of C/C++ files.
+        entry: env AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1 ament_cppcheck
+        language: system
+        files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
 
-  # # Cmake hooks
-  # - repo: local
-  #   hooks:
-  #     - id: ament_lint_cmake
-  #       name: ament_lint_cmake
-  #       description: Check format of CMakeLists.txt files.
-  #       entry: ament_lint_cmake
-  #       language: system
-  #       files: CMakeLists\.txt$
+  - repo: local
+    hooks:
+      - id: ament_cpplint
+        name: ament_cpplint
+        description: Static code analysis of C/C++ files.
+        entry: ament_cpplint
+        language: system
+        files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
+        args: ["--linelength=100", "--filter=-whitespace/newline"]
 
-  # # Copyright
-  # - repo: local
-  #   hooks:
-  #     - id: ament_copyright
-  #       name: ament_copyright
-  #       description: Check if copyright notice is available in all files.
-  #       entry: ament_copyright
-  #       language: system
-  #       exclude: .*/conf\.py$
+  # Cmake hooks
+  - repo: local
+    hooks:
+      - id: ament_lint_cmake
+        name: ament_lint_cmake
+        description: Check format of CMakeLists.txt files.
+        entry: ament_lint_cmake
+        language: system
+        files: CMakeLists\.txt$
 
   # Docs - RestructuredText hooks
   - repo: https://github.com/PyCQA/doc8
