@@ -1,6 +1,0 @@
-manifest:
-  projects:
-    - name: zenoh-pico
-      url: https://github.com/eclipse-zenoh/zenoh-pico
-      revision: 1.9.0
-      path: modules/lib/zenoh-pico

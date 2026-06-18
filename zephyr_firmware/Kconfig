@@ -1,3 +1,3 @@
-mainmenu "zephyr zenoh ros control config"
+mainmenu "zenbedded config"
 
 source "Kconfig.zephyr"

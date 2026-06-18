@@ -1,4 +1,4 @@
-name: zephyr-firmware
+name: zenbedded_firmware
 
 build:
   cmake: .

@@ -1,0 +1,25 @@
+# using Zephyr v3.7.0 and zenoh-pico v1.9.0
+
+
+manifest:
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: eclipse-zenoh
+      url-base: https://github.com/eclipse-zenoh/zenoh-pico
+
+  defaults:
+    remote: zephyrproject-rtos
+
+  projects:
+    - name: zephyr_firmware
+      remote: zephyrproject-rtos
+      revision: 3.7.0
+      import: true
+    - name: zenoh-pico
+      revision: 1.9.0
+      path: modules/lib/zenoh-pico
+
+  self:
+    path: zephyr_firmware

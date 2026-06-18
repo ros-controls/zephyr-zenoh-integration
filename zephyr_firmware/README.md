@@ -1,4 +1,4 @@
-# Zephyr Firmware
+# Zenbedded Firmware
 
 The embedded client library for Zephyr RTOS that provides a high-level API for ROS 2 communication.
 
@@ -8,13 +8,14 @@ The embedded client library for Zephyr RTOS that provides a high-level API for R
 - **Optimized**: Designed for low-memory footprint and real-time execution within the Zephyr thread model.
 
 ## Setup instructions
-- Add zenoh-pico to workspace submanifest
+- Setup west
+
 ```bash
-cp zephyr_firmware/submanifests/zenoh-pico.yml /zephyr_ws/zephyr/submanifests/zenoh-pico.yml
+west init -l .
 west update
 ```
 
-- build
+- build & flash
 
 ```bash
 cd zephyr_firmware

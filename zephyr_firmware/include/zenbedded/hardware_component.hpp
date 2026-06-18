@@ -1,6 +1,6 @@
 
-#ifndef ROS_CONTROL__HARDWARE_COMPONENT_HPP_
-#define ROS_CONTROL__HARDWARE_COMPONENT_HPP_
+#ifndef ZENBEDDED__HARDWARE_COMPONENT_HPP_
+#define ZENBEDDED__HARDWARE_COMPONENT_HPP_
 
 #include <zephyr/kernel.h>
 #include <cstdint>
@@ -187,4 +187,4 @@ private:
   struct k_mutex lifecycle_mutex_;
 };
 
-#endif  // ROS_CONTROL__HARDWARE_COMPONENT_HPP_
+#endif  // ZENBEDDED__HARDWARE_COMPONENT_HPP_
