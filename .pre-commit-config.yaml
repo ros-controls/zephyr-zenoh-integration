@@ -75,8 +75,7 @@ repos:
         description: Check if copyright notice is available in all files and auto adds them.
         entry: ament_copyright --add-missing "Open Source Robotics Foundation, Inc." apache2
         language: system
-        exclude: .*/conf\.py$
-        pass_filenames: false
+        exclude: ^(build|install|log|opt)/|.*/conf\.py$
 
   - repo: local
     hooks:
