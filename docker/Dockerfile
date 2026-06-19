@@ -40,7 +40,7 @@ RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV PATH="/zephyr_ws/zephyr-sdk-0.16.8/arm-zephyr-eabi/bin:/zephyr_ws/zephyr-sdk-0.16.8/xtensa-espressif_esp32_zephyr-elf/bin:/zephyr_ws/zephyr-sdk-0.16.8/xtensa-espressif_esp32s3_zephyr-elf/bin:${PATH}"
+ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-0.16.8
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Set up ROS 2 workspace structure
