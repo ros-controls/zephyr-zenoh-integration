@@ -20,9 +20,13 @@ RUN apt-get update && apt-get install -y \
 # Install West
 RUN pip3 install --break-system-packages west
 
-# Set up Zephyr workspace
+# Set up Zephyr workspace with zenoh-pico preloaded
 WORKDIR /zephyr_ws
-RUN west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.7.0 . && west update && west zephyr-export
+COPY docker/image-west.yml        manifest-repo/west.yml
+COPY zenbedded_transport/west.yml manifest-repo/zenbedded_transport.yml
+RUN cd manifest-repo && git init -q && git add . \
+    && git -c user.email=ci@local -c user.name=ci commit -qm "image manifest"
+RUN west init -l manifest-repo && west update && west zephyr-export
 
 # Copy python requirements from zephyr and install
 RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
