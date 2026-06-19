@@ -6,15 +6,9 @@ on:
     branches:
       - master
     paths:
-      - '**.c'
-      - '**.cpp'
-      - '**.h'
-      - '**.hpp'
-      - '**/prj.conf'
-      - '**/boards/*.conf'
-      - '**/*.overlay'
-      - '**/CMakeLists.txt'
-      - '**/sample.yaml'
+      - 'demos/**'
+      - 'zenbedded_rcl/**'
+      - 'zenbedded_transport/**'
       - '.github/workflows/zephyr-twister.yml'
   push: *event
 
