@@ -1,0 +1,51 @@
+name: Zephyr Twister
+
+on:
+  workflow_dispatch:
+  pull_request: &event
+    branches:
+      - master
+    paths:
+      - 'demos/**'
+      - 'zenbedded_rcl/**'
+      - 'zenbedded_transport/**'
+      - '.github/workflows/zephyr-twister.yml'
+  push: *event
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/heads') }}
+
+jobs:
+  twister:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/ros-controls/zephyr-zenoh-integration/zephyr-zenoh-dev:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run twister (build only)
+        shell: bash
+        run: |
+          export ZEPHYR_BASE=/zephyr_ws/zephyr
+          "$ZEPHYR_BASE/scripts/twister" \
+            --testsuite-root demos/inverted_pendulum \
+            --testsuite-root zenbedded_rcl \
+            --platform native_sim \
+            --platform esp32s3_devkitc/esp32s3/procpu \
+            --inline-logs \
+            --outdir twister-out
+
+      - name: Upload twister output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twister-out
+          path: twister-out
+          if-no-files-found: ignore

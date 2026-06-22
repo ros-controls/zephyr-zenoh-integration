@@ -1,4 +1,4 @@
-// Copyright 2026 Zephyr Zenoh Integration
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZENOH_TRANSPORT_H_
-#define ZENOH_TRANSPORT_H_
-
-// Function prototypes will go here
-
-#endif  // ZENOH_TRANSPORT_H_
+//
