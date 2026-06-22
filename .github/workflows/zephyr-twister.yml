@@ -35,8 +35,7 @@ jobs:
         run: |
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
-            --testsuite-root demos/inverted_pendulum \
-            --testsuite-root zenbedded_rcl \
+            --testsuite-root demos \
             --platform native_sim \
             --platform esp32s3_devkitc/esp32s3/procpu \
             --inline-logs \
