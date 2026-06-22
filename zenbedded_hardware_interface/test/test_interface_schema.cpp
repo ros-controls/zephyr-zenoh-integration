@@ -21,11 +21,13 @@ class TestInterfaceSchema : public ::testing::Test
 protected:
   static constexpr const char * simple_yaml = R"(
 state_interfaces:
-  left_wheel:
+  motor_arm:
+    position: float32
+  pendulum_axis:
     position: float32
 command_interfaces:
-  left_wheel:
-    velocity: float32
+  motor_arm:
+    position: float32
 )";
 
   static constexpr const char * multi_field_yaml = R"(
@@ -50,7 +52,7 @@ TEST_F(TestInterfaceSchema, simple_schema)
   auto schema = zephyr_zenoh::InterfaceSchema::from_yaml(simple_yaml);
   EXPECT_TRUE(schema.valid());
   EXPECT_TRUE(schema.error().empty());
-  EXPECT_EQ(schema.total_state_interfaces(), 1);
+  EXPECT_EQ(schema.total_state_interfaces(), 2);
   EXPECT_EQ(schema.total_command_interfaces(), 1);
 }
 
