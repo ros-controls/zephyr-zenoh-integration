@@ -4,8 +4,8 @@ zephyr_library()
 
 # Add our native library source files
 zephyr_library_sources(
-  src/zenoh_transport.c
-  src/serialization.c
+  src/zenoh_transport.cpp
+  src/serialization.cpp
 )
 
 # Expose our native headers globally
