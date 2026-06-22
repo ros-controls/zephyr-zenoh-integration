@@ -8,8 +8,8 @@ project(zenbedded_rcl)
 
 target_sources(app PRIVATE
     src/main.cpp
-    lib/component_manager.cpp
-    lib/hardware_component.cpp
+    src/component_manager.cpp
+    src/hardware_component.cpp
 )
 
 target_include_directories(app PRIVATE include)
@@ -21,8 +21,8 @@ target_include_directories(app PRIVATE include)
 
 # zephyr_library()
 # zephyr_library_sources(
-#     lib/component_manager.cpp
-#     lib/hardware_component.cpp
+#     src/component_manager.cpp
+#     src/hardware_component.cpp
 # )
 # zephyr_library_link_libraries(zenoh-pico)
 # zephyr_library_include_directories(include)

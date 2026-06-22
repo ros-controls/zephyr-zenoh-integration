@@ -1,4 +1,4 @@
-// Copyright 2026 Open Source Robotics Foundation, Inc.
+// Copyright 2026
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZENBEDDED__COMPONENT_MANAGER_HPP_
-#define ZENBEDDED__COMPONENT_MANAGER_HPP_
-
-#endif  // ZENBEDDED__COMPONENT_MANAGER_HPP_
+#include "zenbedded_transport/zenoh_transport.h"  // NOLINT(build/include_subdir)
