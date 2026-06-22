@@ -1,6 +1,4 @@
 name: zenbedded_rcl
-
 build:
   cmake: .
-  depends:
-    - zenoh-pico
+  kconfig: Kconfig

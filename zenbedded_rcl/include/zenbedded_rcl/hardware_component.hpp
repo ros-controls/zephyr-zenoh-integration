@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZENBEDDED__HARDWARE_COMPONENT_HPP_
-#define ZENBEDDED__HARDWARE_COMPONENT_HPP_
+#ifndef ZENBEDDED_RCL__HARDWARE_COMPONENT_HPP_
+#define ZENBEDDED_RCL__HARDWARE_COMPONENT_HPP_
 
 #include <zephyr/kernel.h>
 #include <cstdint>
@@ -200,4 +200,4 @@ private:
   struct k_mutex lifecycle_mutex_;
 };
 
-#endif  // ZENBEDDED__HARDWARE_COMPONENT_HPP_
+#endif  // ZENBEDDED_RCL__HARDWARE_COMPONENT_HPP_

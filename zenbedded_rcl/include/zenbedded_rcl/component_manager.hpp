@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZENBEDDED__COMPONENT_MANAGER_HPP_
-#define ZENBEDDED__COMPONENT_MANAGER_HPP_
+#ifndef ZENBEDDED_RCL__COMPONENT_MANAGER_HPP_
+#define ZENBEDDED_RCL__COMPONENT_MANAGER_HPP_
 
-#endif  // ZENBEDDED__COMPONENT_MANAGER_HPP_
+#endif  // ZENBEDDED_RCL__COMPONENT_MANAGER_HPP_
