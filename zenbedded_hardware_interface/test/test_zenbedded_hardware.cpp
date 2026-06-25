@@ -20,11 +20,11 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <zenoh.hxx>
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "zephyr_zenoh_hardware_interface/zenoh_zephyr_hardware.hpp"
+#include "zenbedded_hardware_interface/zenbedded_hardware.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class TestZenohZephyrHardware : public ::testing::Test
+class TestZenbeddedHardware : public ::testing::Test
 {
 protected:
   static void SetUpTestSuite()
@@ -62,17 +62,17 @@ protected:
     hardware_interface::HardwareComponentInterfaceParams params;
     params.hardware_info = info;
 
-    hw_ = std::make_unique<zephyr_zenoh::ZenohZephyrHardware>();
+    hw_ = std::make_unique<zenbedded::ZenbeddedHardware>();
     ASSERT_EQ(hw_->on_init(params), CallbackReturn::SUCCESS);
   }
 
   static std::unique_ptr<zenoh::Session> test_router_;
-  std::unique_ptr<zephyr_zenoh::ZenohZephyrHardware> hw_;
+  std::unique_ptr<zenbedded::ZenbeddedHardware> hw_;
 };
 
-std::unique_ptr<zenoh::Session> TestZenohZephyrHardware::test_router_ = nullptr;
+std::unique_ptr<zenoh::Session> TestZenbeddedHardware::test_router_ = nullptr;
 
-TEST_F(TestZenohZephyrHardware, missing_parameter_fails)
+TEST_F(TestZenbeddedHardware, missing_parameter_fails)
 {
   hardware_interface::HardwareInfo info;
   info.name = "test_hw";
@@ -91,11 +91,11 @@ TEST_F(TestZenohZephyrHardware, missing_parameter_fails)
   hardware_interface::HardwareComponentInterfaceParams params;
   params.hardware_info = info;
 
-  auto hw = std::make_unique<zephyr_zenoh::ZenohZephyrHardware>();
+  auto hw = std::make_unique<zenbedded::ZenbeddedHardware>();
   EXPECT_EQ(hw->on_init(params), CallbackReturn::ERROR);
 }
 
-TEST_F(TestZenohZephyrHardware, state_interfaces_exported)
+TEST_F(TestZenbeddedHardware, state_interfaces_exported)
 {
   auto si = hw_->export_state_interfaces();
   EXPECT_EQ(si.size(), 1);
@@ -103,7 +103,7 @@ TEST_F(TestZenohZephyrHardware, state_interfaces_exported)
   EXPECT_EQ(si[0].get_interface_name(), "position");
 }
 
-TEST_F(TestZenohZephyrHardware, command_interfaces_exported)
+TEST_F(TestZenbeddedHardware, command_interfaces_exported)
 {
   auto ci = hw_->export_command_interfaces();
   EXPECT_EQ(ci.size(), 1);
@@ -111,14 +111,14 @@ TEST_F(TestZenohZephyrHardware, command_interfaces_exported)
   EXPECT_EQ(ci[0].get_interface_name(), "position");
 }
 
-TEST_F(TestZenohZephyrHardware, activate_succeeds_with_router)
+TEST_F(TestZenbeddedHardware, activate_succeeds_with_router)
 {
   rclcpp_lifecycle::State state(1, "unconfigured");
   EXPECT_EQ(hw_->on_activate(state), CallbackReturn::SUCCESS);
   EXPECT_EQ(hw_->on_deactivate(state), CallbackReturn::SUCCESS);
 }
 
-TEST_F(TestZenohZephyrHardware, activate_fails_with_bad_endpoint)
+TEST_F(TestZenbeddedHardware, activate_fails_with_bad_endpoint)
 {
   // Use a port unlikely to be running a Zenoh router
   hardware_interface::HardwareInfo info;
@@ -141,7 +141,7 @@ TEST_F(TestZenohZephyrHardware, activate_fails_with_bad_endpoint)
   hardware_interface::HardwareComponentInterfaceParams params;
   params.hardware_info = info;
 
-  auto hw = std::make_unique<zephyr_zenoh::ZenohZephyrHardware>();
+  auto hw = std::make_unique<zenbedded::ZenbeddedHardware>();
   ASSERT_EQ(hw->on_init(params), CallbackReturn::SUCCESS);
 
   rclcpp_lifecycle::State state(1, "unconfigured");
