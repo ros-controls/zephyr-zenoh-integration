@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>zephyr_zenoh_hardware_interface</name>
+  <name>zenbedded_hardware_interface</name>
   <version>0.0.1</version>
   <description>Zenoh-based hardware interface for Zephyr RTOS and ros2_control</description>
   <maintainer email="itzkamalkant@gmail.com">kamal2730</maintainer>
@@ -16,9 +16,10 @@
   <depend>pluginlib</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>zenoh_cpp_vendor</depend>
+  <depend>yaml_cpp_vendor</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
-    <hardware_interface_plugin>zenoh_zephyr_hardware_interface.xml</hardware_interface_plugin>
+    <hardware_interface_plugin>zenbedded_hardware_interface.xml</hardware_interface_plugin>
   </export>
 </package>

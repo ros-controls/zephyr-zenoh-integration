@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
-#define ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
+#ifndef ZENBEDDED_HARDWARE_INTERFACE__ZENBEDDED_HARDWARE_HPP_
+#define ZENBEDDED_HARDWARE_INTERFACE__ZENBEDDED_HARDWARE_HPP_
 
 #include <memory>
 #include <mutex>
@@ -29,14 +29,14 @@
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
-namespace zephyr_zenoh
+namespace zenbedded
 {
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class ZenohZephyrHardware : public hardware_interface::SystemInterface
+class ZenbeddedHardware : public hardware_interface::SystemInterface
 {
 public:
-  RCLCPP_SHARED_PTR_DEFINITIONS(ZenohZephyrHardware)
+  RCLCPP_SHARED_PTR_DEFINITIONS(ZenbeddedHardware)
 
   CallbackReturn on_init(
     const hardware_interface::HardwareComponentInterfaceParams & params) override;
@@ -67,6 +67,6 @@ private:
   std::string command_topic_;
 };
 
-}  // namespace zephyr_zenoh
+}  // namespace zenbedded
 
-#endif  // ZEPHYR_ZENOH_HARDWARE_INTERFACE__ZENOH_ZEPHYR_HARDWARE_HPP_
+#endif  // ZENBEDDED_HARDWARE_INTERFACE__ZENBEDDED_HARDWARE_HPP_
