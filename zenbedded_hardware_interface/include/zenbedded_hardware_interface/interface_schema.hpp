@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZEPHYR_ZENOH_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
-#define ZEPHYR_ZENOH_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#ifndef ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#define ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace zephyr_zenoh
+namespace zenbedded
 {
 
 enum class FieldType : uint8_t
@@ -83,6 +83,6 @@ private:
   std::vector<FlatField> command_flat_fields_;
 };
 
-}  // namespace zephyr_zenoh
+}  // namespace zenbedded
 
-#endif  // ZEPHYR_ZENOH_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#endif  // ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_

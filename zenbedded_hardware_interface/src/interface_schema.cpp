@@ -11,11 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "zephyr_zenoh_hardware_interface/interface_schema.hpp"
+#include "zenbedded_hardware_interface/interface_schema.hpp"
 
 #include <yaml-cpp/yaml.h>
 
-namespace zephyr_zenoh
+namespace zenbedded
 {
 
 FieldType parse_field_type(const std::string & type_str, std::string & error)
@@ -129,4 +129,4 @@ InterfaceSchema InterfaceSchema::from_yaml(const std::string & yaml_text)
   return schema;
 }
 
-}  // namespace zephyr_zenoh
+}  // namespace zenbedded

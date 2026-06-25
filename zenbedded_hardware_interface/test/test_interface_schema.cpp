@@ -14,7 +14,7 @@
 #include <gmock/gmock.h>
 #include <string>
 
-#include "zephyr_zenoh_hardware_interface/interface_schema.hpp"
+#include "zenbedded_hardware_interface/interface_schema.hpp"
 
 class TestInterfaceSchema : public ::testing::Test
 {
@@ -49,7 +49,7 @@ command_interfaces:
 
 TEST_F(TestInterfaceSchema, simple_schema)
 {
-  auto schema = zephyr_zenoh::InterfaceSchema::from_yaml(simple_yaml);
+  auto schema = zenbedded::InterfaceSchema::from_yaml(simple_yaml);
   EXPECT_TRUE(schema.valid());
   EXPECT_TRUE(schema.error().empty());
   EXPECT_EQ(schema.total_state_interfaces(), 2);
@@ -58,7 +58,7 @@ TEST_F(TestInterfaceSchema, simple_schema)
 
 TEST_F(TestInterfaceSchema, multi_field_components)
 {
-  auto schema = zephyr_zenoh::InterfaceSchema::from_yaml(multi_field_yaml);
+  auto schema = zenbedded::InterfaceSchema::from_yaml(multi_field_yaml);
   EXPECT_TRUE(schema.valid());
   EXPECT_TRUE(schema.error().empty());
   EXPECT_EQ(schema.total_state_interfaces(), 5);
@@ -68,7 +68,7 @@ TEST_F(TestInterfaceSchema, multi_field_components)
 TEST_F(TestInterfaceSchema, missing_state_interfaces_fails)
 {
   auto schema =
-    zephyr_zenoh::InterfaceSchema::from_yaml("command_interfaces:\n  joint:\n    pos: float32\n");
+    zenbedded::InterfaceSchema::from_yaml("command_interfaces:\n  joint:\n    pos: float32\n");
   EXPECT_FALSE(schema.valid());
   EXPECT_FALSE(schema.error().empty());
   EXPECT_THAT(schema.error(), ::testing::HasSubstr("state_interfaces"));
@@ -77,7 +77,7 @@ TEST_F(TestInterfaceSchema, missing_state_interfaces_fails)
 TEST_F(TestInterfaceSchema, missing_command_interfaces_fails)
 {
   auto schema =
-    zephyr_zenoh::InterfaceSchema::from_yaml("state_interfaces:\n  joint:\n    pos: float32\n");
+    zenbedded::InterfaceSchema::from_yaml("state_interfaces:\n  joint:\n    pos: float32\n");
   EXPECT_FALSE(schema.valid());
   EXPECT_FALSE(schema.error().empty());
   EXPECT_THAT(schema.error(), ::testing::HasSubstr("command_interfaces"));
@@ -85,14 +85,14 @@ TEST_F(TestInterfaceSchema, missing_command_interfaces_fails)
 
 TEST_F(TestInterfaceSchema, empty_yaml_fails)
 {
-  auto schema = zephyr_zenoh::InterfaceSchema::from_yaml("");
+  auto schema = zenbedded::InterfaceSchema::from_yaml("");
   EXPECT_FALSE(schema.valid());
   EXPECT_FALSE(schema.error().empty());
 }
 
 TEST_F(TestInterfaceSchema, invalid_yaml_fails)
 {
-  auto schema = zephyr_zenoh::InterfaceSchema::from_yaml("{invalid: [yaml");
+  auto schema = zenbedded::InterfaceSchema::from_yaml("{invalid: [yaml");
   EXPECT_FALSE(schema.valid());
   EXPECT_FALSE(schema.error().empty());
 }

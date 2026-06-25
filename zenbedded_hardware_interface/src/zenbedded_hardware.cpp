@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "zephyr_zenoh_hardware_interface/zenoh_zephyr_hardware.hpp"
+#include "zenbedded_hardware_interface/zenbedded_hardware.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -23,10 +23,10 @@
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace zephyr_zenoh
+namespace zenbedded
 {
 
-CallbackReturn ZenohZephyrHardware::on_init(
+CallbackReturn ZenbeddedHardware::on_init(
   const hardware_interface::HardwareComponentInterfaceParams & params)
 {
   if (hardware_interface::SystemInterface::on_init(params) != CallbackReturn::SUCCESS)
@@ -45,7 +45,7 @@ CallbackReturn ZenohZephyrHardware::on_init(
   }
   catch (const std::out_of_range & e)
   {
-    RCLCPP_FATAL(rclcpp::get_logger("ZenohZephyrHardware"), "Missing required URDF parameter");
+    RCLCPP_FATAL(rclcpp::get_logger("ZenbeddedHardware"), "Missing required URDF parameter");
     return CallbackReturn::ERROR;
   }
 
@@ -53,11 +53,11 @@ CallbackReturn ZenohZephyrHardware::on_init(
   hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
   hw_state_buffer_.resize(info_.joints.size(), 0.0);
 
-  RCLCPP_INFO(rclcpp::get_logger("ZenohZephyrHardware"), "Hardware Interface Initialized!");
+  RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware Interface Initialized!");
   return CallbackReturn::SUCCESS;
 }
 
-std::vector<hardware_interface::StateInterface> ZenohZephyrHardware::export_state_interfaces()
+std::vector<hardware_interface::StateInterface> ZenbeddedHardware::export_state_interfaces()
 {
   std::vector<hardware_interface::StateInterface> state_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++)
@@ -69,7 +69,7 @@ std::vector<hardware_interface::StateInterface> ZenohZephyrHardware::export_stat
   return state_interfaces;
 }
 
-std::vector<hardware_interface::CommandInterface> ZenohZephyrHardware::export_command_interfaces()
+std::vector<hardware_interface::CommandInterface> ZenbeddedHardware::export_command_interfaces()
 {
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++)
@@ -81,7 +81,7 @@ std::vector<hardware_interface::CommandInterface> ZenohZephyrHardware::export_co
   return command_interfaces;
 }
 
-CallbackReturn ZenohZephyrHardware::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
+CallbackReturn ZenbeddedHardware::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
   try
   {
@@ -101,22 +101,21 @@ CallbackReturn ZenohZephyrHardware::on_activate(const rclcpp_lifecycle::State & 
   }
   catch (const std::exception & e)
   {
-    RCLCPP_FATAL(rclcpp::get_logger("ZenohZephyrHardware"), "Zenoh failed: %s", e.what());
+    RCLCPP_FATAL(rclcpp::get_logger("ZenbeddedHardware"), "Zenoh failed: %s", e.what());
     return CallbackReturn::ERROR;
   }
-  RCLCPP_INFO(rclcpp::get_logger("ZenohZephyrHardware"), "Hardware activated!");
+  RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware activated!");
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn ZenohZephyrHardware::on_deactivate(
-  const rclcpp_lifecycle::State & /*previous_state*/)
+CallbackReturn ZenbeddedHardware::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
   session_.reset();
-  RCLCPP_INFO(rclcpp::get_logger("ZenohZephyrHardware"), "Hardware deactivated.");
+  RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware deactivated.");
   return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::return_type ZenohZephyrHardware::read(
+hardware_interface::return_type ZenbeddedHardware::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
@@ -127,7 +126,7 @@ hardware_interface::return_type ZenohZephyrHardware::read(
   return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type ZenohZephyrHardware::write(
+hardware_interface::return_type ZenbeddedHardware::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
@@ -138,8 +137,8 @@ hardware_interface::return_type ZenohZephyrHardware::write(
   return hardware_interface::return_type::OK;
 }
 
-}  // namespace zephyr_zenoh
+}  // namespace zenbedded
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(zephyr_zenoh::ZenohZephyrHardware, hardware_interface::SystemInterface)
+PLUGINLIB_EXPORT_CLASS(zenbedded::ZenbeddedHardware, hardware_interface::SystemInterface)
