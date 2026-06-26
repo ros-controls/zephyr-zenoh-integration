@@ -15,6 +15,9 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <fstream>
+#include <iterator>
+
 namespace zenbedded
 {
 
@@ -127,6 +130,96 @@ InterfaceSchema InterfaceSchema::from_yaml(const std::string & yaml_text)
   }
 
   return schema;
+}
+
+InterfaceSchema InterfaceSchema::from_yaml_file(const std::string & file_path)
+{
+  std::ifstream file(file_path);
+  if (!file)
+  {
+    InterfaceSchema schema;
+    schema.error_ = "Cannot open file: " + file_path;
+    return schema;
+  }
+  std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  return from_yaml(content);
+}
+
+namespace
+{
+
+const char * field_type_to_c_type(FieldType type)
+{
+  if (type == FieldType::FLOAT32)
+  {
+    return "float";
+  }
+  if (type == FieldType::FLOAT64)
+  {
+    return "double";
+  }
+  if (type == FieldType::INT32)
+  {
+    return "int32_t";
+  }
+  if (type == FieldType::UINT64)
+  {
+    return "uint64_t";
+  }
+  if (type == FieldType::INT16)
+  {
+    return "int16_t";
+  }
+  if (type == FieldType::UINT8)
+  {
+    return "uint8_t";
+  }
+  return "unknown";
+}
+
+}  // namespace
+
+bool InterfaceSchema::write_c_header(const std::string & output_path) const
+{
+  if (!valid_)
+  {
+    return false;
+  }
+
+  std::ofstream out(output_path);
+  if (!out)
+  {
+    return false;
+  }
+
+  const char * guard = "ZENBEDDED_HARDWARE_INTERFACE__GENERATED__INTERFACE_DATA_H_";
+
+  out << "#ifndef " << guard << "\n";
+  out << "#define " << guard << "\n\n";
+  out << "#include <stdint.h>\n\n";
+  out << "#define ZENBEDDED_STATE_BYTE_SIZE " << state_buffer_size_ << "\n";
+  out << "#define ZENBEDDED_COMMAND_BYTE_SIZE " << command_buffer_size_ << "\n\n";
+  out << "#pragma pack(push, 1)\n";
+  out << "typedef struct\n{\n";
+
+  for (const auto & f : state_flat_fields_)
+  {
+    out << "  " << field_type_to_c_type(f.type) << " " << f.component << "_" << f.field << ";\n";
+  }
+
+  out << "} zenbedded_state_t;\n\n";
+  out << "typedef struct\n{\n";
+
+  for (const auto & f : command_flat_fields_)
+  {
+    out << "  " << field_type_to_c_type(f.type) << " " << f.component << "_" << f.field << ";\n";
+  }
+
+  out << "} zenbedded_command_t;\n";
+  out << "#pragma pack(pop)\n\n";
+  out << "#endif  // " << guard << "\n";
+
+  return true;
 }
 
 }  // namespace zenbedded
