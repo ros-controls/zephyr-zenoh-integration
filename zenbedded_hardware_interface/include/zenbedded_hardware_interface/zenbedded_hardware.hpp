@@ -28,6 +28,14 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "zenbedded_hardware_interface/generated/interface_data.h"
+
+static_assert(
+  sizeof(zenbedded_state_t) == ZENBEDDED_STATE_BYTE_SIZE,
+  "zenbedded_state_t size mismatch with YAML schema");
+static_assert(
+  sizeof(zenbedded_command_t) == ZENBEDDED_COMMAND_BYTE_SIZE,
+  "zenbedded_command_t size mismatch with YAML schema");
 
 namespace zenbedded
 {

@@ -60,6 +60,7 @@ class InterfaceSchema
 {
 public:
   static InterfaceSchema from_yaml(const std::string & yaml_text);
+  static InterfaceSchema from_yaml_file(const std::string & file_path);
 
   bool valid() const { return valid_; }
   std::string error() const { return error_; }
@@ -71,6 +72,8 @@ public:
 
   const auto & state_fields() const { return state_flat_fields_; }
   const auto & command_fields() const { return command_flat_fields_; }
+
+  bool write_c_header(const std::string & output_path) const;
 
 private:
   InterfaceSchema() = default;

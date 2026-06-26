@@ -12,8 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <gmock/gmock.h>
+#include <unistd.h>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <string>
 
+#include "zenbedded_hardware_interface/generated/interface_data.h"
 #include "zenbedded_hardware_interface/interface_schema.hpp"
 
 class TestInterfaceSchema : public ::testing::Test
@@ -46,6 +51,55 @@ command_interfaces:
     velocity: float32
 )";
 };
+
+TEST_F(TestInterfaceSchema, generated_state_struct_compiles)
+{
+  EXPECT_GT(sizeof(zenbedded_state_t), 0);
+  EXPECT_GT(ZENBEDDED_STATE_BYTE_SIZE, 0);
+}
+
+TEST_F(TestInterfaceSchema, generated_command_struct_compiles)
+{
+  EXPECT_GT(sizeof(zenbedded_command_t), 0);
+  EXPECT_GT(ZENBEDDED_COMMAND_BYTE_SIZE, 0);
+}
+
+TEST_F(TestInterfaceSchema, generated_struct_sizes_match_config_schema)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml_file(
+    std::string(TEST_CONFIG_DIR) + "/interface_schema.yaml");
+  ASSERT_TRUE(schema.valid()) << schema.error();
+  EXPECT_EQ(sizeof(zenbedded_state_t), ZENBEDDED_STATE_BYTE_SIZE);
+  EXPECT_EQ(sizeof(zenbedded_state_t), schema.state_buffer_size());
+  EXPECT_EQ(sizeof(zenbedded_command_t), ZENBEDDED_COMMAND_BYTE_SIZE);
+  EXPECT_EQ(sizeof(zenbedded_command_t), schema.command_buffer_size());
+}
+
+TEST_F(TestInterfaceSchema, write_c_header_produces_valid_output)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(multi_field_yaml);
+  ASSERT_TRUE(schema.valid());
+
+  char tmp_path[] = "/tmp/test_header_XXXXXX";
+  int fd = mkstemp(tmp_path);
+  ASSERT_GE(fd, 0);
+  close(fd);
+
+  EXPECT_TRUE(schema.write_c_header(tmp_path));
+
+  std::ifstream file(tmp_path);
+  ASSERT_TRUE(file.is_open());
+  std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  file.close();
+  std::remove(tmp_path);
+
+  EXPECT_THAT(content, ::testing::HasSubstr("zenbedded_state_t"));
+  EXPECT_THAT(content, ::testing::HasSubstr("zenbedded_command_t"));
+  EXPECT_THAT(content, ::testing::HasSubstr("ZENBEDDED_STATE_BYTE_SIZE"));
+  EXPECT_THAT(content, ::testing::HasSubstr("ZENBEDDED_COMMAND_BYTE_SIZE"));
+  EXPECT_THAT(content, ::testing::HasSubstr("left_wheel_position"));
+  EXPECT_THAT(content, ::testing::HasSubstr("right_wheel_velocity"));
+}
 
 TEST_F(TestInterfaceSchema, simple_schema)
 {
@@ -95,4 +149,13 @@ TEST_F(TestInterfaceSchema, invalid_yaml_fails)
   auto schema = zenbedded::InterfaceSchema::from_yaml("{invalid: [yaml");
   EXPECT_FALSE(schema.valid());
   EXPECT_FALSE(schema.error().empty());
+}
+
+TEST_F(TestInterfaceSchema, unknown_type_fails)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(
+    "state_interfaces:\n  j:\n    p: float33\n"
+    "command_interfaces:\n  j:\n    p: float32\n");
+  EXPECT_FALSE(schema.valid());
+  EXPECT_THAT(schema.error(), ::testing::HasSubstr("Unknown type"));
 }
