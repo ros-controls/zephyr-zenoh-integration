@@ -1,0 +1,8 @@
+state_interfaces:
+  motor_arm:
+    position: float32
+  pendulum_axis:
+    position: float32
+command_interfaces:
+  motor_arm:
+    position: float32
