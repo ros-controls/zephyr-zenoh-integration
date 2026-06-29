@@ -1,10 +1,9 @@
 sample:
-  name: Inverted Pendulum Zenoh Demo
+  name: Inverted Pendulum Zenbedded Demo
 common:
   build_only: true
   tags: zenoh
 tests:
   sample.zenbedded.inverted_pendulum:
     platform_allow:
-      - native_sim
       - esp32s3_devkitc/esp32s3/procpu
