@@ -1,0 +1,6 @@
+state_interfaces:
+  gripper:
+    position: float32
+command_interfaces:
+  gripper:
+    position: float32

@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <string>
 
@@ -49,6 +50,25 @@ command_interfaces:
     velocity: float32
   right_wheel:
     velocity: float32
+)";
+
+  static constexpr const char * all_types_yaml = R"(
+state_interfaces:
+  all_types:
+    f32: float32
+    f64: float64
+    i32: int32
+    u64: uint64
+    i16: int16
+    u8: uint8
+command_interfaces:
+  all_types:
+    f32: float32
+    f64: float64
+    i32: int32
+    u64: uint64
+    i16: int16
+    u8: uint8
 )";
 };
 
@@ -158,4 +178,105 @@ TEST_F(TestInterfaceSchema, unknown_type_fails)
     "command_interfaces:\n  j:\n    p: float32\n");
   EXPECT_FALSE(schema.valid());
   EXPECT_THAT(schema.error(), ::testing::HasSubstr("Unknown type"));
+}
+
+TEST_F(TestInterfaceSchema, read_state_field_all_types)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(all_types_yaml);
+  ASSERT_TRUE(schema.valid());
+
+  std::vector<uint8_t> buf(schema.state_buffer_size(), 0);
+
+  float f32_val = 3.14f;
+  double f64_val = 2.718;
+  int32_t i32_val = -42;
+  uint64_t u64_val = 123456789;
+  int16_t i16_val = -1000;
+  uint8_t u8_val = 200;
+
+  std::memcpy(buf.data(), &f32_val, 4);
+  std::memcpy(buf.data() + 4, &f64_val, 8);
+  std::memcpy(buf.data() + 12, &i32_val, 4);
+  std::memcpy(buf.data() + 16, &u64_val, 8);
+  std::memcpy(buf.data() + 24, &i16_val, 2);
+  std::memcpy(buf.data() + 26, &u8_val, 1);
+
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 0), static_cast<double>(f32_val));
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 1), f64_val);
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 2), static_cast<double>(i32_val));
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 3), static_cast<double>(u64_val));
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 4), static_cast<double>(i16_val));
+  EXPECT_DOUBLE_EQ(schema.read_state_field(buf.data(), 5), static_cast<double>(u8_val));
+}
+
+TEST_F(TestInterfaceSchema, read_state_field_out_of_range_returns_zero)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(simple_yaml);
+  ASSERT_TRUE(schema.valid());
+  uint8_t dummy = 0;
+  EXPECT_DOUBLE_EQ(schema.read_state_field(&dummy, 999), 0.0);
+}
+
+TEST_F(TestInterfaceSchema, read_command_field_all_types)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(all_types_yaml);
+  ASSERT_TRUE(schema.valid());
+  EXPECT_EQ(schema.total_command_interfaces(), 6);
+
+  std::vector<uint8_t> buf(schema.command_buffer_size(), 0);
+
+  float f32_val = 1.5f;
+  double f64_val = 2.71828;
+  int32_t i32_val = -99;
+  uint64_t u64_val = 999888777;
+  int16_t i16_val = -5;
+  uint8_t u8_val = 12;
+
+  std::memcpy(buf.data(), &f32_val, 4);
+  std::memcpy(buf.data() + 4, &f64_val, 8);
+  std::memcpy(buf.data() + 12, &i32_val, 4);
+  std::memcpy(buf.data() + 16, &u64_val, 8);
+  std::memcpy(buf.data() + 24, &i16_val, 2);
+  std::memcpy(buf.data() + 26, &u8_val, 1);
+
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 0), static_cast<double>(f32_val));
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 1), f64_val);
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 2), static_cast<double>(i32_val));
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 3), static_cast<double>(u64_val));
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 4), static_cast<double>(i16_val));
+  EXPECT_DOUBLE_EQ(schema.read_command_field(buf.data(), 5), static_cast<double>(u8_val));
+}
+
+TEST_F(TestInterfaceSchema, write_command_field_all_types)
+{
+  auto schema = zenbedded::InterfaceSchema::from_yaml(all_types_yaml);
+  ASSERT_TRUE(schema.valid());
+
+  std::vector<uint8_t> buf(schema.command_buffer_size(), 0);
+
+  schema.write_command_field(buf.data(), 0, 1.5);
+  schema.write_command_field(buf.data(), 1, 2.5);
+  schema.write_command_field(buf.data(), 2, -99.0);
+  schema.write_command_field(buf.data(), 3, 999.0);
+  schema.write_command_field(buf.data(), 4, -5.0);
+  schema.write_command_field(buf.data(), 5, 12.0);
+
+  float f32_out;
+  std::memcpy(&f32_out, buf.data(), 4);
+  EXPECT_FLOAT_EQ(f32_out, 1.5f);
+  double f64_out;
+  std::memcpy(&f64_out, buf.data() + 4, 8);
+  EXPECT_DOUBLE_EQ(f64_out, 2.5);
+  int32_t i32_out;
+  std::memcpy(&i32_out, buf.data() + 12, 4);
+  EXPECT_EQ(i32_out, -99);
+  uint64_t u64_out;
+  std::memcpy(&u64_out, buf.data() + 16, 8);
+  EXPECT_EQ(u64_out, 999);
+  int16_t i16_out;
+  std::memcpy(&i16_out, buf.data() + 24, 2);
+  EXPECT_EQ(i16_out, -5);
+  uint8_t u8_out;
+  std::memcpy(&u8_out, buf.data() + 26, 1);
+  EXPECT_EQ(u8_out, 12);
 }
