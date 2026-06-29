@@ -1,3 +1,9 @@
 menu "Zenbedded RCL Configuration"
-# RCL specific configs will go here
+
+    config ZENBEDDED_RCL_ENABLE
+        bool "Enable Zenbedded RCL"
+        default y
+        help
+          This option enables the Zenbedded Ros Client Library (RCL).
+
 endmenu
