@@ -15,11 +15,13 @@
 #ifndef ZENBEDDED_HARDWARE_INTERFACE__ZENBEDDED_HARDWARE_HPP_
 #define ZENBEDDED_HARDWARE_INTERFACE__ZENBEDDED_HARDWARE_HPP_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
+#include <realtime_tools/realtime_buffer.hpp>
 #include <zenoh.hxx>
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -28,14 +30,7 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
-#include "zenbedded_hardware_interface/generated/interface_data.h"
-
-static_assert(
-  sizeof(zenbedded_state_t) == ZENBEDDED_STATE_BYTE_SIZE,
-  "zenbedded_state_t size mismatch with YAML schema");
-static_assert(
-  sizeof(zenbedded_command_t) == ZENBEDDED_COMMAND_BYTE_SIZE,
-  "zenbedded_command_t size mismatch with YAML schema");
+#include "zenbedded_hardware_interface/interface_schema.hpp"
 
 namespace zenbedded
 {
@@ -65,10 +60,19 @@ public:
 
 private:
   std::unique_ptr<zenoh::Session> session_;
+
+  InterfaceSchema schema_;
+
+  // Lock-free state buffer
+  realtime_tools::RealtimeBuffer<std::vector<uint8_t>> state_buffer_;
+  std::vector<uint8_t> command_buffer_;
+
+  // Zenoh sub/pub
+  std::unique_ptr<zenoh::Subscriber<void>> state_sub_;
+  std::unique_ptr<zenoh::Publisher> command_pub_;
+
   std::vector<double> hw_commands_;
   std::vector<double> hw_states_;
-  std::vector<double> hw_state_buffer_;
-  mutable std::mutex data_mutex_;
   std::string zenoh_endpoint_;
   std::string zenoh_mode_;
   std::string state_topic_;
