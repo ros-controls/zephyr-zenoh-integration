@@ -12,12 +12,13 @@ find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(zenoh_cpp_vendor REQUIRED)
-find_package(yaml-cpp REQUIRED)
 find_package(realtime_tools REQUIRED)
+
+# Import schema library from sibling package
+add_subdirectory(../zenbedded_schema ${CMAKE_BINARY_DIR}/zenbedded_schema)
 
 add_library(zenbedded_hardware_interface SHARED
   src/zenbedded_hardware.cpp
-  src/interface_schema.cpp
 )
 
 target_include_directories(zenbedded_hardware_interface PRIVATE
@@ -25,24 +26,17 @@ target_include_directories(zenbedded_hardware_interface PRIVATE
 )
 
 target_link_libraries(zenbedded_hardware_interface
-  PRIVATE
+  PUBLIC
+    zenbedded_schema
     hardware_interface::hardware_interface
     pluginlib::pluginlib
     rclcpp::rclcpp
     rclcpp_lifecycle::rclcpp_lifecycle
     zenohcxx::zenohc
-    yaml-cpp::yaml-cpp
     realtime_tools::realtime_tools
 )
 
-# Schema-driven header generator
-add_executable(generate_header
-  tools/generate_header.cpp
-  src/interface_schema.cpp
-)
-target_link_libraries(generate_header yaml-cpp::yaml-cpp)
-target_include_directories(generate_header PRIVATE include)
-
+# Schema-driven header generator (uses zenbedded_schema's generate_header tool)
 set(SCHEMA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/config/interface_schema.yaml")
 set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/zenbedded_hardware_interface/generated")
 file(MAKE_DIRECTORY ${GENERATED_DIR})
@@ -83,12 +77,12 @@ if(BUILD_TESTING)
     TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/config"
   )
   add_dependencies(test_zenbedded_hardware generate_interface_data)
+
   ament_add_gmock(test_interface_schema
     test/test_interface_schema.cpp
   )
   target_link_libraries(test_interface_schema
-    zenbedded_hardware_interface
-    yaml-cpp::yaml-cpp
+    zenbedded_schema
   )
   target_include_directories(test_interface_schema PRIVATE
     include
