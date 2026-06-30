@@ -1,9 +1,9 @@
 sample:
-  name: RCL C++ Test
+  name: Zenbedded RCL test
 common:
   build_only: true
   tags: zenoh
 tests:
-  sample.zenbedded.rcl_cpp_test:
+  sample.zenbedded.inverted_pendulum:
     platform_allow:
       - esp32s3_devkitc/esp32s3/procpu
