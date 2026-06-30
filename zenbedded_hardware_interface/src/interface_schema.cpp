@@ -15,6 +15,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <cstring>
 #include <fstream>
 #include <iterator>
 
@@ -67,7 +68,7 @@ bool parse_component_fields(
       return false;
     }
 
-    size_t byte_size = static_cast<size_t>(type);
+    size_t byte_size = InterfaceSchema::field_byte_size(type);
     fields.push_back({component_name, field_name, type, buffer_size});
     buffer_size += byte_size;
   }
@@ -220,6 +221,167 @@ bool InterfaceSchema::write_c_header(const std::string & output_path) const
   out << "#endif  // " << guard << "\n";
 
   return true;
+}
+
+size_t InterfaceSchema::field_byte_size(FieldType type)
+{
+  if (type == FieldType::FLOAT32)
+  {
+    return 4;
+  }
+  if (type == FieldType::FLOAT64)
+  {
+    return 8;
+  }
+  if (type == FieldType::INT32)
+  {
+    return 4;
+  }
+  if (type == FieldType::UINT64)
+  {
+    return 8;
+  }
+  if (type == FieldType::INT16)
+  {
+    return 2;
+  }
+  if (type == FieldType::UINT8)
+  {
+    return 1;
+  }
+  return 0;
+}
+
+double InterfaceSchema::read_state_field(const uint8_t * buffer, size_t field_index) const
+{
+  if (field_index >= state_flat_fields_.size())
+  {
+    return 0.0;
+  }
+  const auto & f = state_flat_fields_[field_index];
+  double value = 0.0;
+  if (f.type == FieldType::FLOAT32)
+  {
+    float v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(float));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::FLOAT64)
+  {
+    double v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(double));
+    value = v;
+  }
+  else if (f.type == FieldType::INT32)
+  {
+    int32_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(int32_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::UINT64)
+  {
+    uint64_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(uint64_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::INT16)
+  {
+    int16_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(int16_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::UINT8)
+  {
+    uint8_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(uint8_t));
+    value = static_cast<double>(v);
+  }
+  return value;
+}
+
+double InterfaceSchema::read_command_field(const uint8_t * buffer, size_t field_index) const
+{
+  if (field_index >= command_flat_fields_.size())
+  {
+    return 0.0;
+  }
+  const auto & f = command_flat_fields_[field_index];
+  double value = 0.0;
+  if (f.type == FieldType::FLOAT32)
+  {
+    float v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(float));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::FLOAT64)
+  {
+    double v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(double));
+    value = v;
+  }
+  else if (f.type == FieldType::INT32)
+  {
+    int32_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(int32_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::UINT64)
+  {
+    uint64_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(uint64_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::INT16)
+  {
+    int16_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(int16_t));
+    value = static_cast<double>(v);
+  }
+  else if (f.type == FieldType::UINT8)
+  {
+    uint8_t v;
+    std::memcpy(&v, buffer + f.byte_offset, sizeof(uint8_t));
+    value = static_cast<double>(v);
+  }
+  return value;
+}
+
+void InterfaceSchema::write_command_field(uint8_t * buffer, size_t field_index, double value) const
+{
+  if (field_index >= command_flat_fields_.size())
+  {
+    return;
+  }
+  const auto & f = command_flat_fields_[field_index];
+  if (f.type == FieldType::FLOAT32)
+  {
+    float v = static_cast<float>(value);
+    std::memcpy(buffer + f.byte_offset, &v, sizeof(float));
+  }
+  else if (f.type == FieldType::FLOAT64)
+  {
+    std::memcpy(buffer + f.byte_offset, &value, sizeof(double));
+  }
+  else if (f.type == FieldType::INT32)
+  {
+    int32_t v = static_cast<int32_t>(value);
+    std::memcpy(buffer + f.byte_offset, &v, sizeof(int32_t));
+  }
+  else if (f.type == FieldType::UINT64)
+  {
+    uint64_t v = static_cast<uint64_t>(value);
+    std::memcpy(buffer + f.byte_offset, &v, sizeof(uint64_t));
+  }
+  else if (f.type == FieldType::INT16)
+  {
+    int16_t v = static_cast<int16_t>(value);
+    std::memcpy(buffer + f.byte_offset, &v, sizeof(int16_t));
+  }
+  else if (f.type == FieldType::UINT8)
+  {
+    uint8_t v = static_cast<uint8_t>(value);
+    std::memcpy(buffer + f.byte_offset, &v, sizeof(uint8_t));
+  }
 }
 
 }  // namespace zenbedded

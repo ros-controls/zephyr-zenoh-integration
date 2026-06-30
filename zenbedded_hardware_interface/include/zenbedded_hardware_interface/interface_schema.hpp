@@ -23,12 +23,12 @@ namespace zenbedded
 
 enum class FieldType : uint8_t
 {
-  FLOAT32 = 4,
-  FLOAT64 = 8,
-  INT32 = 4,
-  UINT64 = 8,
-  INT16 = 2,
-  UINT8 = 1,
+  FLOAT32,
+  FLOAT64,
+  INT32,
+  UINT64,
+  INT16,
+  UINT8,
 };
 
 struct FieldDescriptor
@@ -75,7 +75,12 @@ public:
 
   bool write_c_header(const std::string & output_path) const;
 
-private:
+  double read_state_field(const uint8_t * buffer, size_t field_index) const;
+  double read_command_field(const uint8_t * buffer, size_t field_index) const;
+  void write_command_field(uint8_t * buffer, size_t field_index, double value) const;
+
+  static size_t field_byte_size(FieldType type);
+
   InterfaceSchema() = default;
 
   bool valid_ = false;

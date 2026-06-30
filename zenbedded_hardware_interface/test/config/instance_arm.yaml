@@ -1,0 +1,11 @@
+state_interfaces:
+  shoulder:
+    position: float32
+    velocity: float32
+  elbow:
+    position: float32
+command_interfaces:
+  shoulder:
+    position: float32
+  elbow:
+    position: float32
