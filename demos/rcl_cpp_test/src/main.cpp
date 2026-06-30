@@ -21,7 +21,7 @@ int main()
   ZenbeddedClient client;
   client.init("z/state", "z/cmd");
 
-  printk("hello");
+  printk("hello from zenbedded");
 
   return 0;
 }
