@@ -1,10 +1,9 @@
 sample:
-  name: Zenbedded RCL
+  name: RCL C++ Test
 common:
   build_only: true
   tags: zenoh
 tests:
-  sample.zenbedded.rcl:
+  sample.zenbedded.rcl_cpp_test:
     platform_allow:
-      - native_sim
       - esp32s3_devkitc/esp32s3/procpu
