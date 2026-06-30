@@ -13,132 +13,139 @@
 // limitations under the License.
 
 #include "zenbedded_rcl/zenbedded_client.hpp"
-#include <zephyr/logging/log.h>
-#include <cstring>
+#include <zenoh-pico.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
-// Internal message queues (shared with hardware thread)
-K_MSGQ_DEFINE(g_cmd_queue, sizeof(zenbedded_command_t), 1, 4);
-K_MSGQ_DEFINE(g_state_queue, sizeof(zenbedded_state_t), 1, 4);
+// Static pointer to the client instance for the callback
+static ZenbeddedClient * zrcl_instance = nullptr;
 
-// Zenoh topic names (could be made configurable)
-static const char * STATE_TOPIC = "zenbedded/state";
-static const char * CMD_TOPIC = "zenbedded/command";
-
-// -------------------------------------------------------------------
-// Static callback for incoming command samples
-void ZenbeddedClient::on_command_sample(const z_sample_t * sample, void * arg)
+void ZenbeddedClient::reset_buffers()
 {
-  if (sample->payload.len != sizeof(zenbedded_command_t))
-  {
-    LOG_WRN(
-      "Received command with wrong size: %zu, expected %zu", sample->payload.len,
-      sizeof(zenbedded_command_t));
-    return;
-  }
-  zenbedded_command_t cmd;
-  memcpy(&cmd, sample->payload.start, sizeof(cmd));
-  // Put into the command queue – non‑blocking, so we may drop if full.
-  int ret = k_msgq_put(&g_cmd_queue, &cmd, K_NO_WAIT);
-  if (ret != 0)
-  {
-    LOG_WRN("Command queue full, dropping incoming command");
-  }
+  // reset atomic variables
+  atomic_set(&state_buffer_active_idx_, 0);
+  atomic_set(&cmd_buffer_active_idx_, 0);
+
+  atomic_set(&state_buffer_version_[0], 0);
+  atomic_set(&state_buffer_version_[1], 0);
+  atomic_set(&cmd_buffer_version_[0], 0);
+  atomic_set(&cmd_buffer_version_[1], 0);
+
+  // Clear buffers
+  memset(state_buffer_, 0, sizeof(state_buffer_));
+  memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
+  memset(&user_state_buffer_, 0, sizeof(user_state_buffer_));
+  memset(&user_command_buffer_, 0, sizeof(user_command_buffer_));
 }
 
-// -------------------------------------------------------------------
-int ZenbeddedClient::init(const char * config_path)
+int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic)
 {
-  if (initialized)
+  if (initialized_)
   {
+    LOG_WRN("Client already initialized");
     return 0;
   }
 
-  // 1. Purge queues
-  k_msgq_purge(&g_cmd_queue);
-  k_msgq_purge(&g_state_queue);
+  if (!state_topic || !cmd_topic)
+  {
+    LOG_ERR("State and command topics cannot be NULL");
+    return -EINVAL;
+  }
 
-  // 2. Open Zenoh session
+  state_topic_ = state_topic;
+  cmd_topic_ = cmd_topic;
+
+  reset_buffers();
+
+  // Open Zenoh session
   z_owned_config_t config;
   z_config_default(&config);
-  if (config_path)
-  {
-    z_config_from_file(&config, config_path);
-  }
-  z_owned_session_t session;
-  if (z_open(&session, z_move(config), NULL) < 0)
+
+  if (z_open(&z_session_, z_move(config), nullptr) < 0)
   {
     LOG_ERR("Failed to open Zenoh session");
+    z_config_drop(z_move(config));
     return -EIO;
   }
-  this->session = z_loan(session);  // store loaned session
 
-  // 3. Declare publisher for state
-  z_owned_publisher_t pub;
+  // Declare publisher for state (using configured topic)
   z_view_keyexpr_t ke_state;
-  z_view_keyexpr_from_str(&ke_state, STATE_TOPIC);
-  if (z_declare_publisher(z_loan(session), &pub, z_loan(ke_state), NULL) < 0)
+  if (z_view_keyexpr_from_str(&ke_state, state_topic) < 0)
   {
-    LOG_ERR("Failed to declare state publisher");
-    z_close(z_loan(session), NULL);
+    LOG_ERR("Invalid state topic: %s", state_topic);
+    z_close(z_session_loan_mut(&z_session_), nullptr);
+    return -EINVAL;
+  }
+  if (
+    z_declare_publisher(z_session_loan(&z_session_), &z_state_pub_, z_loan(ke_state), nullptr) < 0)
+  {
+    LOG_ERR("Failed to declare state publisher on topic: %s", state_topic);
+    z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EIO;
   }
-  this->state_pub = z_loan(pub);
 
-  // 4. Declare subscriber for commands
+  // subscriber for commands (using configured topic)
   z_owned_closure_sample_t callback;
-  z_closure(&callback, on_command_sample, NULL, NULL);
+  z_closure(&callback, on_zenoh_command_cb, nullptr, nullptr);
   z_view_keyexpr_t ke_cmd;
-  z_view_keyexpr_from_str(&ke_cmd, CMD_TOPIC);
-  z_owned_subscriber_t sub;
-  if (z_declare_subscriber(z_loan(session), &sub, z_loan(ke_cmd), z_move(callback), NULL) < 0)
+  if (z_view_keyexpr_from_str(&ke_cmd, cmd_topic) < 0)
   {
-    LOG_ERR("Failed to declare command subscriber");
-    z_undeclare_publisher(z_loan(pub), NULL);
-    z_close(z_loan(session), NULL);
+    LOG_ERR("Invalid command topic: %s", cmd_topic);
+    z_undeclare_publisher(z_publisher_move(&z_state_pub_));
+    z_close(z_session_loan_mut(&z_session_), nullptr);
+    return -EINVAL;
+  }
+  if (
+    z_declare_subscriber(
+      z_session_loan(&z_session_), &z_cmd_sub_, z_loan(ke_cmd), z_move(callback), nullptr) < 0)
+  {
+    LOG_ERR("Failed to declare command subscriber on topic: %s", cmd_topic);
+    z_undeclare_publisher(z_publisher_move(&z_state_pub_));
+    z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EIO;
   }
-  // The subscriber lives for the lifetime of the client – we can drop the owned handle
-  // or keep it in a member if we need to undeclare later.
-  // For simplicity, we'll keep it in a static/global but we'll just let it go out of scope;
-  // however, we need to keep it alive. We can store it in a member or a static variable.
-  // We'll store it in a static variable for brevity.
-  static z_owned_subscriber_t cmd_sub = z_move(sub);  // keep alive
 
-  initialized = true;
-  LOG_INF("ZenbeddedClient initialized with Zenoh");
+  initialized_ = true;
+  zrcl_instance = this;
+
+  LOG_INF("ZenbeddedClient initialized: state='%s', cmd='%s'", state_topic, cmd_topic);
   return 0;
 }
 
-int ZenbeddedClient::send_command(const zenbedded_command_t & cmd, k_timeout_t timeout)
+void ZenbeddedClient::destroy()
 {
-  return k_msgq_put(&g_cmd_queue, &cmd, timeout);
-}
-
-int ZenbeddedClient::receive_state(zenbedded_state_t & state, k_timeout_t timeout)
-{
-  return k_msgq_get(&g_state_queue, &state, timeout);
-}
-
-int ZenbeddedClient::publish_state(const zenbedded_state_t & state)
-{
-  if (!initialized)
+  if (!initialized_)
   {
-    return -ENODEV;
+    return;
   }
-  z_owned_bytes_t payload;
-  z_bytes_copy_from(&payload, (const uint8_t *)&state, sizeof(state));
-  int ret = z_publisher_put(z_loan(state_pub), z_move(payload), NULL);
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to publish state: %d", ret);
-  }
-  return ret;
+
+  z_undeclare_subscriber(z_subscriber_move(&z_cmd_sub_));
+  z_undeclare_publisher(z_publisher_move(&z_state_pub_));
+  z_close(z_session_loan_mut(&z_session_), nullptr);
+
+  z_session_drop(z_session_move(&z_session_));
+
+  initialized_ = false;
+  zrcl_instance = nullptr;
+
+  LOG_INF("ZenbeddedClient deinitialized");
 }
 
-bool ZenbeddedClient::is_command_available() const
+// Zenoh subscriber callback – feeds incoming commands into the queue.
+void ZenbeddedClient::on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg)
 {
-  zenbedded_command_t dummy;
-  return (k_msgq_get(&g_cmd_queue, &dummy, K_NO_WAIT) == 0);
+  zenbedded_command_t cmd;
+  z_bytes_reader_t reader = z_bytes_get_reader(z_sample_payload(sample));
+  size_t bytes_copied =
+    z_bytes_reader_read(&reader, reinterpret_cast<uint8_t *>(&cmd), sizeof(zenbedded_command_t));
+
+  if (bytes_copied != sizeof(zenbedded_command_t))
+  {
+    LOG_WRN("Invalid command size: %zu, expected %zu", bytes_copied, sizeof(zenbedded_command_t));
+    return;
+  }
+
+  // write to buffer: TODO
 }
