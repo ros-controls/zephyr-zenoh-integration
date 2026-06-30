@@ -30,13 +30,7 @@ public:
   // Deinitialize the client
   void destroy();
 
-  /**
-   * @brief Synchronizes buffers between user and zenbedded rcl.
-   *
-   * This does two things:
-   * 1. Moves user_state_buffer -> client_state_buffer (for publishing)
-   * 2. Moves client_command_buffer -> user_command_buffer (for reading)
-   */
+  // Synchronizes buffers between user and the zenbedded client.
   void sync();
 
   // Get a reference to the user's state buffer (for writing).
