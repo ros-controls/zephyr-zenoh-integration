@@ -15,7 +15,6 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include <zephyr/sys/atomic.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
@@ -44,7 +43,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic)
 {
   if (initialized_)
   {
-    LOG_WRN("Client already initialized");
+    LOG_WRN("Zenbedded Client already initialized");
     return 0;
   }
 
@@ -88,7 +87,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic)
 
   // subscriber for commands (using configured topic)
   z_owned_closure_sample_t callback;
-  z_closure(&callback, on_zenoh_command_cb, nullptr, nullptr);
+  z_closure(&callback, on_zenoh_command_cb, nullptr, this);
   z_view_keyexpr_t ke_cmd;
   if (z_view_keyexpr_from_str(&ke_cmd, cmd_topic) < 0)
   {
@@ -133,7 +132,6 @@ void ZenbeddedClient::destroy()
   LOG_INF("ZenbeddedClient deinitialized");
 }
 
-// Zenoh subscriber callback – feeds incoming commands into the queue.
 void ZenbeddedClient::on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg)
 {
   zenbedded_command_t cmd;
@@ -147,5 +145,110 @@ void ZenbeddedClient::on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg
     return;
   }
 
-  // write to buffer: TODO
+  ZenbeddedClient * self = static_cast<ZenbeddedClient *>(arg);
+  self->write_command_to_buffer(cmd);
+}
+
+int ZenbeddedClient::zenoh_publish_state()
+{
+  if (!initialized_)
+  {
+    LOG_ERR("Zenbedded Client not initialized");
+    return -ENODEV;
+  }
+
+  // used slices to ensure zero dynamic allocations
+  zenbedded_state_t state;
+  z_owned_bytes_t payload;
+  z_owned_slice_t slice;
+
+  while (!read_state_from_buffer(state))
+  {
+  }
+
+  z_slice_from_buf(
+    &slice, reinterpret_cast<uint8_t *>(&state), sizeof(zenbedded_state_t), nullptr, nullptr);
+  z_bytes_from_slice(&payload, z_move(slice));
+
+  z_result_t ret = z_publisher_put(z_loan(z_state_pub_), z_move(payload), nullptr);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to publish state: %d", ret);
+  }
+  return ret;
+}
+
+void ZenbeddedClient::sync()
+{
+  if (!initialized_)
+  {
+    LOG_ERR("Zenbedded Client not initialized");
+    return;
+  }
+
+  write_state_to_buffer(user_state_buffer_);
+  while (!read_command_from_buffer(user_command_buffer_))
+  {
+  }
+}
+
+bool ZenbeddedClient::read_state_from_buffer(zenbedded_state_t & state)
+{
+  const int read_idx = atomic_get(&state_buffer_active_idx_);
+  const atomic_val_t ver_before = atomic_get(&state_buffer_version_[read_idx]);
+  state = state_buffer_[read_idx];
+
+  // Ensure read completes before consistency check
+  __atomic_thread_fence(__ATOMIC_ACQUIRE);
+
+  // Verify consistency
+  if (
+    atomic_get(&state_buffer_active_idx_) != read_idx ||
+    atomic_get(&state_buffer_version_[read_idx]) != ver_before)
+  {
+    return false;
+  }
+  return true;
+}
+
+bool ZenbeddedClient::read_command_from_buffer(zenbedded_command_t & cmd)
+{
+  const int read_idx = atomic_get(&cmd_buffer_active_idx_);
+  const atomic_val_t ver_before = atomic_get(&cmd_buffer_version_[read_idx]);
+  cmd = cmd_buffer_[read_idx];
+
+  // Ensure read completes before consistency check
+  __atomic_thread_fence(__ATOMIC_ACQUIRE);
+
+  if (
+    atomic_get(&cmd_buffer_active_idx_) != read_idx ||
+    atomic_get(&cmd_buffer_version_[read_idx]) != ver_before)
+  {
+    return false;
+  }
+  return true;
+}
+
+void ZenbeddedClient::write_state_to_buffer(const zenbedded_state_t & state)
+{
+  const int write_idx = atomic_get(&state_buffer_active_idx_) ^ 1;
+  state_buffer_[write_idx] = state;
+
+  // Ensure write completes before version increment
+  __atomic_thread_fence(__ATOMIC_RELEASE);
+
+  atomic_inc(&state_buffer_version_[write_idx]);
+  atomic_set(&state_buffer_active_idx_, write_idx);  // Flip active index
+}
+
+void ZenbeddedClient::write_command_to_buffer(const zenbedded_command_t & cmd)
+{
+  const int write_idx = atomic_get(&cmd_buffer_active_idx_) ^ 1;
+  cmd_buffer_[write_idx] = cmd;
+
+  // Ensure write completes before version increment
+  __atomic_thread_fence(__ATOMIC_RELEASE);
+
+  atomic_inc(&cmd_buffer_version_[write_idx]);
+  atomic_set(&cmd_buffer_active_idx_, write_idx);  // Flip active index
 }
