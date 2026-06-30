@@ -30,13 +30,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync west modules to this PR's manifest
+        shell: bash
+        run: |
+          cp zenbedded_transport/west.yml /zephyr_ws/manifest-repo/zenbedded_transport.yml
+          cp docker/image-west.yml        /zephyr_ws/manifest-repo/west.yml
+          cd /zephyr_ws && west update zenoh-pico
+
       - name: Run twister (build only)
         shell: bash
         run: |
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
-            --testsuite-root demos/inverted_pendulum \
-            --testsuite-root zenbedded_rcl \
+            --testsuite-root demos \
             --platform native_sim \
             --platform esp32s3_devkitc/esp32s3/procpu \
             --inline-logs \
