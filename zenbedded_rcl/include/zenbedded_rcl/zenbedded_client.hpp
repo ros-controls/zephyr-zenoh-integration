@@ -22,48 +22,73 @@
 class ZenbeddedClient
 {
 public:
-  /**
-   * @brief Initialize the client: Zenoh session, queues, and subscriber.
-   * @param config_path Path to Zenoh configuration file (optional).
-   * @return 0 on success, negative error code.
-   */
-  int init(const char * config_path = nullptr);
+  ZenbeddedClient() { reset_buffers(); }
+
+  // Initialize the client.
+  int init(const char * state_topic, const char * cmd_topic);
+
+  // Deinitialize the client
+  void destroy();
 
   /**
-   * @brief Send a command to the hardware (internal queue).
+   * @brief Synchronizes buffers between user and zenbedded rcl.
+   *
+   * This does two things:
+   * 1. Moves user_state_buffer -> client_state_buffer (for publishing)
+   * 2. Moves client_command_buffer -> user_command_buffer (for reading)
    */
-  int send_command(const zenbedded_command_t & cmd, k_timeout_t timeout = K_NO_WAIT);
+  void sync();
 
-  /**
-   * @brief Receive the latest state from the hardware (internal queue).
-   */
-  int receive_state(zenbedded_state_t & state, k_timeout_t timeout = K_NO_WAIT);
+  // Get a reference to the user's state buffer (for writing).
+  zenbedded_state_t & state() { return user_state_buffer_; }
 
-  /**
-   * @brief Publish the current state via Zenoh (called by the user thread).
-   * @param state The state to publish.
-   * @return 0 on success, negative on error.
-   */
-  int publish_state(const zenbedded_state_t & state);
+  // Get a const reference to the user's command buffer (for reading).
+  const zenbedded_command_t & command() const { return user_command_buffer_; }
 
-  /**
-   * @brief Non‑blocking check if a new command has arrived via Zenoh.
-   *        (The subscriber places it into the internal command queue.)
-   */
-  bool is_command_available() const;
-
-  // The Zenoh subscriber callback will be implemented as a static function.
-  static void on_command_sample(const z_sample_t * sample, void * arg);
+  // Check if client is initialized.
+  bool is_initialized() const { return initialized_; }
 
 private:
-  // Internal queues (same as before)
-  // They are defined globally (or as static members) to be accessible from the callback.
-  // We'll keep them as global objects for simplicity.
+  // Double-buffer for State
+  zenbedded_state_t state_buffer_[2];  // Double buffer for states
+  atomic_t state_buffer_active_idx_;   // Which buffer is active (0 or 1)
+  atomic_t state_buffer_version_[2];   // buffer versioning for ABA prevention
 
-  // Zenoh session and publisher.
-  z_session_t session;
-  z_publisher_t state_pub;
-  bool initialized = false;
+  // Double-buffer for Command
+  zenbedded_command_t cmd_buffer_[2];  // Double buffer for commands
+  atomic_t cmd_buffer_active_idx_;     // Which buffer is active (0 or 1)
+  atomic_t cmd_buffer_version_[2];     // buffer versioning for ABA prevention
+
+  // User-space buffers (accessed by user thread)
+  zenbedded_state_t user_state_buffer_{};      // User writes state here
+  zenbedded_command_t user_command_buffer_{};  // User reads commands here
+
+  // Zenoh session, pub & sub.
+  z_owned_session_t z_session_{};
+  z_owned_publisher_t z_state_pub_{};
+  z_owned_subscriber_t z_cmd_sub_{};
+
+  // zenoh topics
+  const char * state_topic_ = nullptr;
+  const char * cmd_topic_ = nullptr;
+
+  // module ready
+  bool initialized_ = false;
+
+  // reset buffers and locks
+  void reset_buffers();
+
+  // The Zenoh subscriber callback.
+  static void on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg);
+
+  // Publish the current state via Zenoh (called by the zenbedded thread).
+  int zenoh_publish_state();
+
+  // buffer read/write commands
+  void write_state_to_buffer(const zenbedded_state_t & state);
+  bool read_state_from_buffer(zenbedded_state_t & state);
+  void write_command_to_buffer(const zenbedded_command_t & cmd);
+  bool read_command_from_buffer(zenbedded_command_t & cmd);
 };
 
 #endif  // ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
