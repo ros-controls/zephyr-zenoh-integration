@@ -4,6 +4,6 @@ common:
   build_only: true
   tags: zenoh
 tests:
-  sample.zenbedded.inverted_pendulum:
+  sample.zenbedded.rcl_cpp_test:
     platform_allow:
       - esp32s3_devkitc/esp32s3/procpu
