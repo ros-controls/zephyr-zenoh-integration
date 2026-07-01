@@ -39,7 +39,7 @@ void ZenbeddedClient::reset_buffers()
   memset(&user_command_buffer_, 0, sizeof(user_command_buffer_));
 }
 
-int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic)
+int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint32_t control_freq)
 {
   if (initialized_)
   {
@@ -107,9 +107,11 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic)
   }
 
   initialized_ = true;
+  control_freq_ = control_freq;
   zrcl_instance = this;
 
   LOG_INF("ZenbeddedClient initialized: state='%s', cmd='%s'", state_topic, cmd_topic);
+  start_thread(control_freq);
   return 0;
 }
 
@@ -145,7 +147,7 @@ void ZenbeddedClient::on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg
     return;
   }
 
-  ZenbeddedClient * self = static_cast<ZenbeddedClient *>(arg);
+  auto * self = static_cast<ZenbeddedClient *>(arg);
   self->write_command_to_buffer(cmd);
 }
 
@@ -251,4 +253,110 @@ void ZenbeddedClient::write_command_to_buffer(const zenbedded_command_t & cmd)
 
   atomic_inc(&cmd_buffer_version_[write_idx]);
   atomic_set(&cmd_buffer_active_idx_, write_idx);  // Flip active index
+}
+
+int ZenbeddedClient::start_thread(uint32_t control_freq)
+{
+  if (!initialized_)
+  {
+    LOG_ERR("Zenbedded Client not initialized");
+    return -ENODEV;
+  }
+
+  if (control_freq == 0)
+  {
+    LOG_WRN("Control Thread frequency is zero, thread unable to start");
+    return -EINVAL;
+  }
+
+  if (control_thread_started_)
+  {
+    stop_thread();
+    k_sleep(K_MSEC(10));
+  }
+
+  control_freq_ = control_freq;
+  atomic_set(&control_thread_running_, 1);
+
+  k_thread_create(
+    &control_thread_, control_thread_stack_, K_KERNEL_STACK_SIZEOF(control_thread_stack_),
+    control_thread_fn,
+    this,     // arg1 - pass client instance
+    nullptr,  // arg2
+    nullptr,  // arg3
+    CONFIG_ZENBEDDED_RCL_THREAD_PRIORITY,
+    0,         // options
+    K_NO_WAIT  // start immediately
+  );
+
+  control_thread_started_ = true;
+
+  LOG_INF("Started thread at %i Hz", control_freq);
+  return 0;
+}
+
+void ZenbeddedClient::stop_thread()
+{
+  if (!control_thread_started_)
+  {
+    return;
+  }
+
+  LOG_INF("Stopping control thread");
+  atomic_set(&control_thread_running_, 0);  // cleanly exit thread loop
+
+  // Wait for thread to exit (with timeout)
+  int timeout_ms = 200;
+  while (atomic_get(&control_thread_running_) != 0 && timeout_ms > 0)
+  {
+    k_sleep(K_MSEC(10));
+    timeout_ms -= 10;
+  }
+
+  if (timeout_ms <= 0)
+  {
+    LOG_WRN("Control thread did not stop gracefully");
+    k_thread_abort(&control_thread_);
+  }
+
+  control_thread_started_ = false;
+  control_freq_ = 0;
+
+  LOG_INF("Publish thread stopped");
+}
+
+void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
+{
+  ARG_UNUSED(arg2);
+  ARG_UNUSED(arg3);
+
+  auto * self = static_cast<ZenbeddedClient *>(arg1);
+
+  if (!self)
+  {
+    LOG_ERR("Invalid client instance in publish thread");
+    return;
+  }
+
+  LOG_INF("Control thread started");
+
+  const uint32_t period_ms = MAX(1000 / self->control_freq_, 1);
+  uint32_t prev_time = k_uptime_get_32();
+
+  while (atomic_get(&self->control_thread_running_))
+  {
+    int ret = self->zenoh_publish_state();
+    if (ret < 0)
+    {
+      LOG_DBG("Zenoh Publish failed: %d", ret);
+    }
+    // wait for extra time to maintain loop freq
+    const uint32_t diff = k_uptime_get_32() - prev_time;
+    k_sleep(K_MSEC(MAX(period_ms - diff, 1)));
+    prev_time = k_uptime_get_32();
+  }
+
+  // Clear running flag to signal exit
+  atomic_set(&self->control_thread_running_, 0);
+  LOG_INF("Publish thread stopped");
 }

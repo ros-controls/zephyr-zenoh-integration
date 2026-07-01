@@ -6,4 +6,17 @@ menu "Zenbedded RCL Configuration"
         help
           This option enables the Zenbedded Ros Client Library (RCL).
 
+    config ZENBEDDED_RCL_THREAD_PRIORITY
+        int "Zenbedded thread priority"
+        default 5
+        help
+            Zephyr thread priority for the zenbedded thread.
+            Lower number = higher priority.
+
+    config ZENBEDDED_RCL_THREAD_STACK_SIZE
+        int "zenbedded thread stack size (bytes)"
+        default 2048
+        range 1024 16384
+        help
+            Stack size for the zenbedded thread.
 endmenu

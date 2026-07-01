@@ -24,8 +24,10 @@ class ZenbeddedClient
 public:
   ZenbeddedClient() { reset_buffers(); }
 
-  // Initialize the client.
-  int init(const char * state_topic, const char * cmd_topic);
+  /// @brief initialize the zenbedded client
+  /// @param control_freq the loop frequency in Hz (thread only start on positive values)
+  /// @return int
+  int init(const char * state_topic, const char * cmd_topic, uint32_t control_freq = 100);
 
   // Deinitialize the client
   void destroy();
@@ -33,14 +35,27 @@ public:
   // Synchronizes buffers between user and the zenbedded client.
   void sync();
 
+  // Publish the current state via Zenoh.
+  int zenoh_publish_state();
+
+  /// @brief start the zenbedded thread
+  /// @param control_freq the loop frequency in Hz (thread only start on positive values)
+  /// @return int
+  int start_thread(uint32_t control_freq);
+
+  // Stop zenbedded thread
+  void stop_thread();
+
   // Get a reference to the user's state buffer (for writing).
   zenbedded_state_t & state() { return user_state_buffer_; }
 
   // Get a const reference to the user's command buffer (for reading).
-  const zenbedded_command_t & command() const { return user_command_buffer_; }
+  [[nodiscard]] const zenbedded_command_t & command() const { return user_command_buffer_; }
 
   // Check if client is initialized.
-  bool is_initialized() const { return initialized_; }
+  [[nodiscard]] bool is_initialized() const { return initialized_; }
+
+  bool is_control_thread_running() { return atomic_get(&control_thread_running_); }
 
 private:
   // Double-buffer for State
@@ -69,19 +84,30 @@ private:
   // module ready
   bool initialized_ = false;
 
+  // control thread variables
+  uint32_t control_freq_ = 0;
+  atomic_t control_thread_running_ = 0;
+  bool control_thread_started_ = false;
+  k_thread control_thread_;
+  K_KERNEL_STACK_MEMBER(control_thread_stack_, CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE);
+
+  // Control thread function
+  static void control_thread_fn(void * arg1, void * arg2, void * arg3);
+
+  // Control flags
   // reset buffers and locks
   void reset_buffers();
 
   // The Zenoh subscriber callback.
   static void on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg);
 
-  // Publish the current state via Zenoh (called by the zenbedded thread).
-  int zenoh_publish_state();
-
   // buffer read/write commands
   void write_state_to_buffer(const zenbedded_state_t & state);
+
   bool read_state_from_buffer(zenbedded_state_t & state);
+
   void write_command_to_buffer(const zenbedded_command_t & cmd);
+
   bool read_command_from_buffer(zenbedded_command_t & cmd);
 };
 
