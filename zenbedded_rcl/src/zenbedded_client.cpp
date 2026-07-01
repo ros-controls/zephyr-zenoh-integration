@@ -121,7 +121,7 @@ void ZenbeddedClient::destroy()
   {
     return;
   }
-
+  stop_thread();
   z_undeclare_subscriber(z_subscriber_move(&z_cmd_sub_));
   z_undeclare_publisher(z_publisher_move(&z_state_pub_));
   z_close(z_session_loan_mut(&z_session_), nullptr);
