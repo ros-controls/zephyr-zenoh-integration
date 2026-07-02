@@ -5,13 +5,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+find_package(ament_cmake QUIET)
 find_package(yaml-cpp REQUIRED)
 
 add_library(zenbedded_schema
   src/interface_schema.cpp
 )
+target_include_directories(zenbedded_schema
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 set_property(TARGET zenbedded_schema PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_include_directories(zenbedded_schema PUBLIC include)
 target_link_libraries(zenbedded_schema PUBLIC yaml-cpp::yaml-cpp)
 
 add_executable(generate_header
@@ -19,15 +24,21 @@ add_executable(generate_header
 )
 target_link_libraries(generate_header PRIVATE zenbedded_schema)
 
-install(TARGETS zenbedded_schema generate_header
+install(TARGETS zenbedded_schema
+  EXPORT zenbedded_schemaTargets
   LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+install(TARGETS generate_header
   RUNTIME DESTINATION bin
 )
 install(DIRECTORY include/ DESTINATION include)
 
-if(COMMAND ament_package)
-  ament_package()
+if(ament_cmake_FOUND)
+  ament_export_targets(zenbedded_schemaTargets)
+  ament_package(
+    CONFIG_EXTRAS cmake/zenbedded_schema-extras.cmake
+  )
 endif()
-# Suppress colcon unused-variable warnings
-set(_ ${CATKIN_INSTALL_INTO_PREFIX_ROOT})
-set(_ ${BUILD_TESTING})
+# Suppress colcon unused-variable warning
+set(___ ${CATKIN_INSTALL_INTO_PREFIX_ROOT})
