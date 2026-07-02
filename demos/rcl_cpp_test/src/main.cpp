@@ -12,21 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
-#include <chrono>
-#include <cstdio>
-#include <cstring>
-#include <string>
 #include <string_view>
+#include <zenbedded_rcl/zenbedded_client.hpp>
 
 int main()
 {
-  printk("\n=============================\n");
-  printk("  Hello, World! (Zephyr C++17)\n");
-  printk("  Board : %s\n", CONFIG_BOARD);
-  printk("=============================\n\n");
+  ZenbeddedClient client;
+  client.init("z/state", "z/cmd");
+
+  printk("hello from zenbedded");
 
   return 0;
 }

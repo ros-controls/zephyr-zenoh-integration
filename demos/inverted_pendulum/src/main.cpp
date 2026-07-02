@@ -11,3 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <zephyr/kernel.h>
+#include <string_view>
+#include <zenbedded_rcl/zenbedded_client.hpp>
+
+int main()
+{
+  ZenbeddedClient client;
+  client.init("z/state", "z/cmd");
+
+  printk("hello from zenbedded");
+
+  return 0;
+}

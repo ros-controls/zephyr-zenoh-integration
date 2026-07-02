@@ -1,5 +1,5 @@
 sample:
-  name: RCL C++ Test
+  name: Zenbedded RCL test
 common:
   build_only: true
   tags: zenoh

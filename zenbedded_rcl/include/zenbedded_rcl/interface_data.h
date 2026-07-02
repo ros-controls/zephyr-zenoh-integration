@@ -12,10 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <zephyr/kernel.h>
+#ifndef ZENBEDDED_RCL__INTERFACE_DATA_H_
+#define ZENBEDDED_RCL__INTERFACE_DATA_H_
 
-int main(void)
+#include <stdint.h>
+
+#define ZENBEDDED_STATE_BYTE_SIZE 8
+#define ZENBEDDED_COMMAND_BYTE_SIZE 4
+
+#pragma pack(push, 1)
+typedef struct
 {
-  printk("Dummy Firmware Booting...\n");
-  return 0;
-}
+  float motor_arm_position;
+  float pendulum_axis_position;
+} zenbedded_state_t;
+
+typedef struct
+{
+  float motor_arm_position;
+} zenbedded_command_t;
+#pragma pack(pop)
+
+#endif  // ZENBEDDED_RCL__INTERFACE_DATA_H_
