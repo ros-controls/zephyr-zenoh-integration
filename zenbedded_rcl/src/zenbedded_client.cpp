@@ -350,9 +350,11 @@ void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
     {
       LOG_DBG("Zenoh Publish failed: %d", ret);
     }
-    // wait for extra time to maintain loop freq
+
     const uint32_t diff = k_uptime_get_32() - prev_time;
-    k_sleep(K_MSEC(MAX(period_ms - diff, 1)));
+    const uint32_t sleep_ms =
+      (diff >= period_ms) ? 1 : (period_ms - diff);  // make sure we don't overflow
+    k_sleep(K_MSEC(sleep_ms));                       // wait for extra time to maintain loop freq
     prev_time = k_uptime_get_32();
   }
 
