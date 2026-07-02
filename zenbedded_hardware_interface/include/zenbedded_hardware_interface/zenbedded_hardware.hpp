@@ -30,7 +30,7 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
-#include "zenbedded_hardware_interface/interface_schema.hpp"
+#include "zenbedded_schema/interface_schema.hpp"
 
 namespace zenbedded
 {

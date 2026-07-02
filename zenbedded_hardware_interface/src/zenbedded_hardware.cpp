@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
-#include "zenbedded_hardware_interface/interface_schema.hpp"
+#include "zenbedded_schema/interface_schema.hpp"
 
 namespace zenbedded
 {
