@@ -16,7 +16,7 @@
 #include <iostream>
 #include <string>
 
-#include "zenbedded_hardware_interface/interface_schema.hpp"
+#include "zenbedded_schema/interface_schema.hpp"
 
 int main(int argc, char * argv[])
 {

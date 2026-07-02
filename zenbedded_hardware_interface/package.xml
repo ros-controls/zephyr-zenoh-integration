@@ -18,6 +18,7 @@
   <depend>zenoh_cpp_vendor</depend>
   <depend>yaml_cpp_vendor</depend>
   <depend>realtime_tools</depend>
+  <depend>zenbedded_schema</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

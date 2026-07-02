@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
-#define ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#ifndef ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
+#define ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
 
 #include <cstdint>
 #include <string>
@@ -93,4 +93,4 @@ public:
 
 }  // namespace zenbedded
 
-#endif  // ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#endif  // ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
