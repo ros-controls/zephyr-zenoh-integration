@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>zenbedded_schema</name>
+  <version>0.0.1</version>
+  <description>YAML-driven schema parser and C header generator for zenbedded</description>
+  <maintainer email="itzkamalkant@gmail.com">kamal2730</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>yaml_cpp_vendor</depend>
+</package>

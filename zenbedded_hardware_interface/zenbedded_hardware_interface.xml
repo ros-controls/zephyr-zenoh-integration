@@ -1,6 +1,6 @@
-<library path="zephyr_zenoh_hardware_interface">
-  <class name="zephyr_zenoh_hardware_interface/ZenohZephyrHardware"
-         type="zephyr_zenoh::ZenohZephyrHardware"
+<library path="zenbedded_hardware_interface">
+  <class name="zenbedded_hardware_interface/ZenbeddedHardware"
+         type="zenbedded::ZenbeddedHardware"
          base_class_type="hardware_interface::SystemInterface">
     <description>
       A ros2_control SystemInterface for Zephyr RTOS microcontrollers
