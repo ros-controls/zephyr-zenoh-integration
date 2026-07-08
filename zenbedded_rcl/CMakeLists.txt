@@ -5,4 +5,4 @@ zephyr_library_sources(
     src/component_manager.cpp
     src/hardware_component.cpp
 )
-zephyr_include_directories(include)
+zephyr_library_include_directories(include)
