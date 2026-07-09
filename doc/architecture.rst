@@ -10,7 +10,7 @@ The integration provides two architecture variants.
 No-CDR architecture
 -------------------
 
-.. image:: images/nocdr_architecture.svg
+.. .. image:: images/nocdr_architecture.svg
    :width: 600
    :align: center
    :alt: No-CDR architecture — uses zenbedded_schema, zenbedded_hardware_interface,
@@ -23,7 +23,7 @@ the MCU — all sharing the same packed struct layout.
 CDR architecture
 ----------------
 
-.. image:: images/cdr_architecture.svg
+.. .. image:: images/cdr_architecture.svg
    :width: 600
    :align: center
    :alt: CDR architecture — uses topic_based_hardware_interface and
