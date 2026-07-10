@@ -11,7 +11,7 @@ No-CDR architecture
 -------------------
 
 .. image:: images/nocdr_architecture.png
-   :width: 600
+   :width: 300
    :align: center
    :alt: No-CDR architecture — uses zenbedded_schema, zenbedded_hardware_interface,
          and zenbedded_rcl with zero-copy packed binary over Zenoh
@@ -24,7 +24,7 @@ CDR architecture
 ----------------
 
 .. image:: images/cdr_architecture.png
-   :width: 600
+   :width: 300
    :align: center
    :alt: CDR architecture — uses topic_based_hardware_interface and
          zenbedded_transport with CDR serialization over Zenoh
