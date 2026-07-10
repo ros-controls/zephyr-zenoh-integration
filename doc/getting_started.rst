@@ -5,8 +5,7 @@
 Getting Started
 ===============
 
-This guide walks you through setting up the Zephyr Zenoh Integration
-end-to-end.
+This guide walks you through setting up the Zephyr Zenoh Integration end-to-end.
 
 
 Prerequisites
