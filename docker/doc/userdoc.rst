@@ -5,7 +5,7 @@
 Docker
 ======
 
-A Docker-based development environment for working with the Zenbedded without installing dependencies locally.
+A Docker-based development environment for working with Zenbedded without installing dependencies locally.
 
 
 Usage
