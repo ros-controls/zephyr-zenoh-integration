@@ -5,9 +5,8 @@
 zenbedded_hardware_interface
 ============================
 
-A ``ros2_control`` ``SystemInterface`` implementation that communicates with
-remote microcontrollers via Zenoh. Reads sensor state from a Zenoh subscriber
-and writes joint commands to a Zenoh publisher.
+A ``ros2_control`` ``SystemInterface`` implementation that communicates with microcontrollers via Zenoh.
+Reads sensor state from a Zenoh subscriber and writes joint commands to a Zenoh publisher.
 
 
 Features
