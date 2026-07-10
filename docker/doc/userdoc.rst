@@ -5,8 +5,7 @@
 Docker
 ======
 
-A Docker-based development environment for working with the Zephyr Zenoh
-Integration without installing dependencies locally.
+A Docker-based development environment for working with the Zenbedded without installing dependencies locally.
 
 
 Usage
