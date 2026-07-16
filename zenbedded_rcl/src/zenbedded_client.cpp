@@ -15,11 +15,24 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
+#include <zephyr/net/wifi_mgmt.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
 // Static pointer to the client instance for the callback
 static ZenbeddedClient * zrcl_instance = nullptr;
+
+net_mgmt_event_callback ZenbeddedClient::wifi_cb;
+net_mgmt_event_callback ZenbeddedClient::ipv4_cb;
+
+wifi_connect_req_params ZenbeddedClient::wifi_params = {
+  .ssid = (const uint8_t *)CONFIG_WIFI_SSID,
+  .ssid_length = sizeof(CONFIG_WIFI_SSID) - 1,
+  .psk = (const uint8_t *)CONFIG_WIFI_PSK,
+  .psk_length = sizeof(CONFIG_WIFI_PSK) - 1,
+  .channel = WIFI_CHANNEL_ANY,
+  .security = WIFI_SECURITY_TYPE_PSK,
+};
 
 void ZenbeddedClient::reset_buffers()
 {
@@ -57,6 +70,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
   cmd_topic_ = cmd_topic;
 
   reset_buffers();
+  init_wifi();
 
   // Open Zenoh session
   z_owned_config_t config;
@@ -361,4 +375,69 @@ void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
   // Clear running flag to signal exit
   atomic_set(&self->control_thread_running_, 0);
   LOG_INF("Publish thread stopped");
+}
+
+void ZenbeddedClient::wifi_event_handler(
+  net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+{
+  if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT)
+  {
+    LOG_INF("WiFi connected");
+  }
+  else if (mgmt_event == NET_EVENT_WIFI_DISCONNECT_RESULT)
+  {
+    LOG_INF("WiFi disconnected");
+    k_sleep(K_MSEC(100));
+    connect_wifi();
+  }
+}
+
+void ZenbeddedClient::ipv4_event_handler(
+  net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+{
+  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
+  {
+    net_if_ipv4 * ipv4 = iface->config.ip.ipv4;
+
+    if (ipv4)
+    {
+      char addr_str[NET_IPV4_ADDR_LEN];
+
+      for (auto & i : ipv4->unicast)
+      {
+        if (i.ipv4.is_used)
+        {
+          net_addr_ntop(AF_INET, &i.ipv4.address.in_addr, addr_str, sizeof(addr_str));
+          LOG_INF("IP Address: %s", addr_str);
+        }
+      }
+    }
+  }
+}
+
+int ZenbeddedClient::connect_wifi()
+{
+  struct net_if * iface = net_if_get_default();
+  LOG_INF("Connecting to %s...", CONFIG_WIFI_SSID);
+  return net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &wifi_params, sizeof(wifi_params));
+}
+
+int ZenbeddedClient::init_wifi()
+{
+  net_mgmt_init_event_callback(
+    &wifi_cb, wifi_event_handler, NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
+  net_mgmt_add_event_callback(&wifi_cb);
+
+  net_mgmt_init_event_callback(&ipv4_cb, ipv4_event_handler, NET_EVENT_IPV4_ADDR_ADD);
+  net_mgmt_add_event_callback(&ipv4_cb);
+  // Wait for WiFi driver to initialize
+  k_sleep(K_SECONDS(500));
+
+  /* Connect to WiFi */
+  int ret = connect_wifi();
+  if (ret)
+  {
+    LOG_ERR("WiFi connect request failed: %d", ret);
+  }
+  return ret;
 }

@@ -19,4 +19,15 @@ menu "Zenbedded RCL Configuration"
         range 1024 16384
         help
             Stack size for the zenbedded thread.
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        help
+          SSID of the WiFi network to connect to.
+
+    config WIFI_PSK
+        string "WiFi Password"
+        help
+          WPA2-PSK password for the WiFi network.
+
 endmenu

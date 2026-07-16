@@ -17,6 +17,7 @@
 
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
+#include <zephyr/net/wifi_mgmt.h>
 #include "zenbedded_rcl/interface_data.h"
 
 class ZenbeddedClient
@@ -91,6 +92,11 @@ private:
   k_thread control_thread_;
   K_KERNEL_STACK_MEMBER(control_thread_stack_, CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE);
 
+  // wifi network config
+  static net_mgmt_event_callback wifi_cb;
+  static net_mgmt_event_callback ipv4_cb;
+  static wifi_connect_req_params wifi_params;
+
   // Control thread function
   static void control_thread_fn(void * arg1, void * arg2, void * arg3);
 
@@ -109,6 +115,11 @@ private:
   void write_command_to_buffer(const zenbedded_command_t & cmd);
 
   bool read_command_from_buffer(zenbedded_command_t & cmd);
+
+  static void wifi_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface);
+  static void ipv4_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface);
+  static int connect_wifi();
+  static int init_wifi();
 };
 
 #endif  // ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
