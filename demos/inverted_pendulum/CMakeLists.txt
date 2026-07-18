@@ -1,12 +1,20 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-# Force Zephyr to load BOTH of our custom libraries
-set(ZEPHYR_EXTRA_MODULES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_transport
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl
-)
+list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(pendulum_demo)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-target_sources(app PRIVATE src/main.c)
+project(pendulum_demo)
+target_sources(app PRIVATE src/main.cpp)
+
+target_include_directories(app PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl/include
+)
+
+add_custom_target(lib_dev_sync SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl/include
+)
