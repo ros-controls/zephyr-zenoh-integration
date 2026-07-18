@@ -20,7 +20,7 @@
 #include <string>
 
 #include "zenbedded_hardware_interface/generated/interface_data.h"
-#include "zenbedded_hardware_interface/interface_schema.hpp"
+#include "zenbedded_schema/interface_schema.hpp"
 
 class TestInterfaceSchema : public ::testing::Test
 {

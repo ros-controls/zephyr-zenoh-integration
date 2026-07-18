@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "zenbedded_hardware_interface/interface_schema.hpp"
+#include "zenbedded_schema/interface_schema.hpp"
 
 #include <yaml-cpp/yaml.h>
 
@@ -193,7 +193,7 @@ bool InterfaceSchema::write_c_header(const std::string & output_path) const
     return false;
   }
 
-  const char * guard = "ZENBEDDED_HARDWARE_INTERFACE__GENERATED__INTERFACE_DATA_H_";
+  const char * guard = "ZENBEDDED_SCHEMA__GENERATED__INTERFACE_DATA_H_";
 
   out << "#ifndef " << guard << "\n";
   out << "#define " << guard << "\n\n";
