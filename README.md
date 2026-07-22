@@ -27,6 +27,11 @@ This project explores a more direct path: by combining [Zephyr RTOS](https://doc
 
 An ESP32 is the reference target, but the work should generalize to other Zephyr-supported boards.
 
+## Documentation
+
+Documentation is available on
+[control.ros.org](https://control.ros.org/rolling/doc/zephyr-zenoh-integration/doc/index.html).
+
 ## References
 
 - [Zephyr RTOS](https://zephyrproject.org/) — [docs](https://docs.zephyrproject.org/), [GitHub](https://github.com/zephyrproject-rtos/zephyr)
