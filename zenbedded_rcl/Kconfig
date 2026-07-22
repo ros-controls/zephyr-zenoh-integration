@@ -15,19 +15,9 @@ menu "Zenbedded RCL Configuration"
 
     config ZENBEDDED_RCL_THREAD_STACK_SIZE
         int "zenbedded thread stack size (bytes)"
-        default 2048
+        default 4096
         range 1024 16384
         help
             Stack size for the zenbedded thread.
-
-    config WIFI_SSID
-        string "WiFi SSID"
-        help
-          SSID of the WiFi network to connect to.
-
-    config WIFI_PSK
-        string "WiFi Password"
-        help
-          WPA2-PSK password for the WiFi network.
 
 endmenu

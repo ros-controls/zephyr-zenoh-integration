@@ -17,7 +17,6 @@
 
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include <zephyr/net/wifi_mgmt.h>
 #include "zenbedded_rcl/interface_data.h"
 
 class ZenbeddedClient
@@ -28,7 +27,9 @@ public:
   /// @brief initialize the zenbedded client
   /// @param control_freq the loop frequency in Hz (thread only start on positive values)
   /// @return int
-  int init(const char * state_topic, const char * cmd_topic, uint32_t control_freq = 100);
+  int init(
+    const char * state_topic, const char * cmd_topic, const char * zenoh_mode = "client",
+    const char * zenoh_locator = "", uint32_t control_freq = 100);
 
   // Deinitialize the client
   void destroy();
@@ -92,11 +93,6 @@ private:
   k_thread control_thread_;
   K_KERNEL_STACK_MEMBER(control_thread_stack_, CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE);
 
-  // wifi network config
-  static net_mgmt_event_callback wifi_cb;
-  static net_mgmt_event_callback ipv4_cb;
-  static wifi_connect_req_params wifi_params;
-
   // Control thread function
   static void control_thread_fn(void * arg1, void * arg2, void * arg3);
 
@@ -116,10 +112,9 @@ private:
 
   bool read_command_from_buffer(zenbedded_command_t & cmd);
 
-  static void wifi_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface);
-  static void ipv4_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface);
-  static int connect_wifi();
-  static int init_wifi();
+  void start_zenoh_task();
+
+  void stop_zenoh_task();
 };
 
 #endif  // ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
