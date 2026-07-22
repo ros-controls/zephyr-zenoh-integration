@@ -15,24 +15,11 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include <zephyr/net/wifi_mgmt.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
 // Static pointer to the client instance for the callback
 static ZenbeddedClient * zrcl_instance = nullptr;
-
-net_mgmt_event_callback ZenbeddedClient::wifi_cb;
-net_mgmt_event_callback ZenbeddedClient::ipv4_cb;
-
-wifi_connect_req_params ZenbeddedClient::wifi_params = {
-  .ssid = (const uint8_t *)CONFIG_WIFI_SSID,
-  .ssid_length = sizeof(CONFIG_WIFI_SSID) - 1,
-  .psk = (const uint8_t *)CONFIG_WIFI_PSK,
-  .psk_length = sizeof(CONFIG_WIFI_PSK) - 1,
-  .channel = WIFI_CHANNEL_ANY,
-  .security = WIFI_SECURITY_TYPE_PSK,
-};
 
 void ZenbeddedClient::reset_buffers()
 {
@@ -52,7 +39,9 @@ void ZenbeddedClient::reset_buffers()
   memset(&user_command_buffer_, 0, sizeof(user_command_buffer_));
 }
 
-int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint32_t control_freq)
+int ZenbeddedClient::init(
+  const char * state_topic, const char * cmd_topic, const char * zenoh_mode,
+  const char * zenoh_locator, uint32_t control_freq)
 {
   if (initialized_)
   {
@@ -65,29 +54,46 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
     LOG_ERR("State and command topics cannot be NULL");
     return -EINVAL;
   }
+  if (!zenoh_mode || !zenoh_locator)
+  {
+    LOG_ERR("Zenoh params cannot be NULL");
+    return -EINVAL;
+  }
 
   state_topic_ = state_topic;
   cmd_topic_ = cmd_topic;
 
   reset_buffers();
-  init_wifi();
 
-  // Open Zenoh session
+  // Zenoh Config
   z_owned_config_t config;
   z_config_default(&config);
+  zp_config_insert(z_config_loan_mut(&config), Z_CONFIG_MODE_KEY, zenoh_mode);
 
-  if (z_open(&z_session_, z_move(config), nullptr) < 0)
+  if (strcmp(zenoh_locator, "") != 0)
+  {
+    zp_config_insert(
+      z_loan_mut(config),
+      (strcmp(zenoh_mode, "client") == 0) ? Z_CONFIG_CONNECT_KEY : Z_CONFIG_LISTEN_KEY,
+      zenoh_locator);
+  }
+
+  z_result_t ret = z_open(&z_session_, z_move(config), nullptr);
+  if (ret < 0)
   {
     LOG_ERR("Failed to open Zenoh session");
-    z_config_drop(z_move(config));
-    return -EIO;
+    return ret;
   }
+
+  LOG_INF("opened session");
+  start_zenoh_task();
 
   // Declare publisher for state (using configured topic)
   z_view_keyexpr_t ke_state;
   if (z_view_keyexpr_from_str(&ke_state, state_topic) < 0)
   {
     LOG_ERR("Invalid state topic: %s", state_topic);
+    stop_zenoh_task();
     z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EINVAL;
   }
@@ -95,6 +101,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
     z_declare_publisher(z_session_loan(&z_session_), &z_state_pub_, z_loan(ke_state), nullptr) < 0)
   {
     LOG_ERR("Failed to declare state publisher on topic: %s", state_topic);
+    stop_zenoh_task();
     z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EIO;
   }
@@ -107,6 +114,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
   {
     LOG_ERR("Invalid command topic: %s", cmd_topic);
     z_undeclare_publisher(z_publisher_move(&z_state_pub_));
+    stop_zenoh_task();
     z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EINVAL;
   }
@@ -116,6 +124,7 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
   {
     LOG_ERR("Failed to declare command subscriber on topic: %s", cmd_topic);
     z_undeclare_publisher(z_publisher_move(&z_state_pub_));
+    stop_zenoh_task();
     z_close(z_session_loan_mut(&z_session_), nullptr);
     return -EIO;
   }
@@ -377,67 +386,14 @@ void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
   LOG_INF("Publish thread stopped");
 }
 
-void ZenbeddedClient::wifi_event_handler(
-  net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+void ZenbeddedClient::start_zenoh_task()
 {
-  if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT)
-  {
-    LOG_INF("WiFi connected");
-  }
-  else if (mgmt_event == NET_EVENT_WIFI_DISCONNECT_RESULT)
-  {
-    LOG_INF("WiFi disconnected");
-    k_sleep(K_MSEC(100));
-    connect_wifi();
-  }
+  zp_start_read_task(z_session_loan_mut(&z_session_), nullptr);
+  zp_start_lease_task(z_session_loan_mut(&z_session_), nullptr);
 }
 
-void ZenbeddedClient::ipv4_event_handler(
-  net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+void ZenbeddedClient::stop_zenoh_task()
 {
-  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
-  {
-    net_if_ipv4 * ipv4 = iface->config.ip.ipv4;
-
-    if (ipv4)
-    {
-      char addr_str[NET_IPV4_ADDR_LEN];
-
-      for (auto & i : ipv4->unicast)
-      {
-        if (i.ipv4.is_used)
-        {
-          net_addr_ntop(AF_INET, &i.ipv4.address.in_addr, addr_str, sizeof(addr_str));
-          LOG_INF("IP Address: %s", addr_str);
-        }
-      }
-    }
-  }
-}
-
-int ZenbeddedClient::connect_wifi()
-{
-  struct net_if * iface = net_if_get_default();
-  LOG_INF("Connecting to %s...", CONFIG_WIFI_SSID);
-  return net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &wifi_params, sizeof(wifi_params));
-}
-
-int ZenbeddedClient::init_wifi()
-{
-  net_mgmt_init_event_callback(
-    &wifi_cb, wifi_event_handler, NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
-  net_mgmt_add_event_callback(&wifi_cb);
-
-  net_mgmt_init_event_callback(&ipv4_cb, ipv4_event_handler, NET_EVENT_IPV4_ADDR_ADD);
-  net_mgmt_add_event_callback(&ipv4_cb);
-  // Wait for WiFi driver to initialize
-  k_sleep(K_SECONDS(500));
-
-  /* Connect to WiFi */
-  int ret = connect_wifi();
-  if (ret)
-  {
-    LOG_ERR("WiFi connect request failed: %d", ret);
-  }
-  return ret;
+  zp_stop_lease_task(z_session_loan_mut(&z_session_));
+  zp_stop_read_task(z_session_loan_mut(&z_session_));
 }
