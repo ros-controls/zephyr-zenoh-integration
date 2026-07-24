@@ -39,6 +39,11 @@ RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
 RUN cd /zephyr_ws && west blobs fetch hal_espressif
+
+# macro redefinition warnings (temporal fix),
+perl -i -pe 's/^#define\s+(\w+)(\s+.*)?$/#ifndef $1\n#define $1$2\n#endif/' /zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in
+
+
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
 ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-0.16.8
