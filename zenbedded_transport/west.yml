@@ -8,5 +8,5 @@ manifest:
       # tagged release once it lands upstream.
       # Addon: dropping to v1.6.2 to avoid background executor issues on zephyr MCUs
       # redefinition issues are fixed temporarily with #ifndef guards on config.h.in
-      revision: v1.6.2
+      revision: 1.6.2
       path: modules/lib/zenoh-pico
