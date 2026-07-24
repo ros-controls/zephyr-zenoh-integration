@@ -167,11 +167,11 @@ int main(void)
         "iter=%d state.motor_arm=%d.%02d "
         "state.pendulum=%d.%02d cmd.motor_arm=%d.%02d",
         i, static_cast<int>(s.motor_arm_position),
-        abs(static_cast<int>((s.motor_arm_position * 100) % 100)),
+        abs(static_cast<int>(s.motor_arm_position * 100) % 100),
         static_cast<int>(s.pendulum_axis_position),
-        abs(static_cast<int>((s.pendulum_axis_position * 100) % 100)),
+        abs(static_cast<int>(s.pendulum_axis_position * 100) % 100),
         static_cast<int>(cmd.motor_arm_position),
-        abs(static_cast<int>((cmd.motor_arm_position * 100) % 100)));
+        abs(static_cast<int>(cmd.motor_arm_position * 100) % 100));
     }
 
     // A stale/never-changing command across many iterations is a real
