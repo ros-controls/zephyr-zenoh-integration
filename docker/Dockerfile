@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
     ros-jazzy-rosidl-generator-c \
-    ros-jazzy-rosidl-generator-cpp \
+    ros-jazzy-rosidl-generator-cpp perl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install West
@@ -41,7 +41,7 @@ RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16
 RUN cd /zephyr_ws && west blobs fetch hal_espressif
 
 # macro redefinition warnings (temporal fix),
-perl -i -pe 's/^#define\s+(\w+)(\s+.*)?$/#ifndef $1\n#define $1$2\n#endif/' /zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in
+RUN perl -i -pe 's/^#define\s+(\w+)(\s+.*)?$/#ifndef $1\n#define $1$2\n#endif/' /zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in
 
 
 # Set environment variables
