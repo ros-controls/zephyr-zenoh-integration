@@ -13,15 +13,9 @@
 // limitations under the License.
 
 #include <zephyr/kernel.h>
-#include <string_view>
-#include <zenbedded_rcl/zenbedded_client.hpp>
 
-int main()
+int main(void)
 {
-  ZenbeddedClient client;
-  client.init("z/state", "z/cmd");
-
-  printk("hello from zenbedded");
-
+  printk("Dummy Firmware Booting...\n");
   return 0;
 }

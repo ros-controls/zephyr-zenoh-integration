@@ -1,5 +1,5 @@
 sample:
-  name: Inverted Pendulum Zenbedded Demo
+  name: Inverted Pendulum Zenoh Demo
 common:
   build_only: true
   tags: zenoh
