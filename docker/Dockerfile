@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
     ros-jazzy-rosidl-generator-c \
-    ros-jazzy-rosidl-generator-cpp \
+    ros-jazzy-rosidl-generator-cpp perl\
     && rm -rf /var/lib/apt/lists/*
 
 # Install West
