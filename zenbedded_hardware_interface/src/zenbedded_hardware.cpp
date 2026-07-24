@@ -40,9 +40,12 @@ CallbackReturn ZenbeddedHardware::on_init(
     zenoh_endpoint_ = info_.hardware_parameters.at("zenoh_endpoint");
     state_topic_ = info_.hardware_parameters.at("state_topic");
     command_topic_ = info_.hardware_parameters.at("command_topic");
-    zenoh_mode_ = info_.hardware_parameters.count("zenoh_mode")
-                    ? info_.hardware_parameters.at("zenoh_mode")
-                    : "client";
+  zenoh_mode_ = info_.hardware_parameters.count("zenoh_mode")
+                  ? info_.hardware_parameters.at("zenoh_mode")
+                  : "client";
+  introspection_enabled_ = info_.hardware_parameters.count("introspection")
+                             ? info_.hardware_parameters.at("introspection") == "true"
+                             : false;
   }
   catch (const std::out_of_range & e)
   {
@@ -77,6 +80,12 @@ CallbackReturn ZenbeddedHardware::on_init(
   command_buffer_.resize(schema_.command_buffer_size(), 0);
 
   RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware Interface Initialized!");
+  if (introspection_enabled_)
+  {
+    RCLCPP_INFO(
+      rclcpp::get_logger("ZenbeddedHardware"), "Introspection enabled (%zu state fields)",
+      schema_.total_state_interfaces());
+  }
   return CallbackReturn::SUCCESS;
 }
 
@@ -131,6 +140,22 @@ CallbackReturn ZenbeddedHardware::on_activate(const rclcpp_lifecycle::State & /*
         hw_commands_[i] = 0;
       }
     }
+
+    if (introspection_enabled_)
+    {
+      auto node = get_node();
+      introspection_pubs_.reserve(schema_.total_state_interfaces());
+      for (size_t i = 0; i < schema_.total_state_interfaces(); i++)
+      {
+        const auto & f = schema_.state_fields()[i];
+        auto topic = "/introspection/" + f.component + "/" + f.field;
+        introspection_pubs_.push_back(
+          node->create_publisher<std_msgs::msg::Float64>(topic, rclcpp::QoS(10)));
+      }
+      RCLCPP_INFO(
+        rclcpp::get_logger("ZenbeddedHardware"), "Created %zu introspection publishers",
+        introspection_pubs_.size());
+    }
   }
   catch (const std::exception & e)
   {
@@ -143,6 +168,7 @@ CallbackReturn ZenbeddedHardware::on_activate(const rclcpp_lifecycle::State & /*
 
 CallbackReturn ZenbeddedHardware::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  introspection_pubs_.clear();
   state_sub_.reset();
   command_pub_.reset();
   session_.reset();
@@ -159,6 +185,16 @@ hardware_interface::return_type ZenbeddedHardware::read(
     for (size_t i = 0; i < schema_.total_state_interfaces(); i++)
     {
       hw_states_[i] = schema_.read_state_field(buf->data(), i);
+    }
+
+    if (introspection_enabled_)
+    {
+      std_msgs::msg::Float64 msg;
+      for (size_t i = 0; i < introspection_pubs_.size(); i++)
+      {
+        msg.data = hw_states_[i];
+        introspection_pubs_[i]->publish(msg);
+      }
     }
   }
   return hardware_interface::return_type::OK;

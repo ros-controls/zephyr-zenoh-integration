@@ -59,6 +59,11 @@ tags:
      - no
      - ``"client"``
      - Zenoh session mode (``"client"`` or ``"peer"``)
+   * - ``introspection``
+     - string
+     - no
+     - ``"false"``
+     - Enable introspection publishers (``"true"`` or ``"false"``)
 
 Example URDF snippet:
 
@@ -72,6 +77,7 @@ Example URDF snippet:
        <param name="state_topic">rt/robot/state</param>
        <param name="command_topic">rt/robot/command</param>
        <param name="schema_path">$(find zenbedded_hardware_interface)/config/interface_schema.yaml</param>
+       <param name="introspection">true</param>
      </hardware>
      <joint name="motor_arm">
        <state_interface name="position"/>
@@ -118,3 +124,21 @@ State updates from the Zenoh callback are written into a
 ``realtime_tools::RealtimeBuffer<std::vector<uint8_t>>``, allowing the
 real-time control loop to read the latest state snapshot without
 blocking on the network callback.
+
+
+Introspection
+-------------
+
+When ``introspection`` is set to ``"true"``, the hardware interface creates
+one ``std_msgs/msg/Float64`` publisher per state field. Each publisher
+publishes the deserialized double value on every ``read()`` cycle.
+
+Topic names follow the pattern ``/introspection/{component}/{field}``.
+
+For the default schema, this produces:
+
+- ``/introspection/motor_arm/position`` (``std_msgs/Float64``)
+- ``/introspection/pendulum_axis/position`` (``std_msgs/Float64``)
+
+Introspection is off by default. When enabled, publishers are created on
+activation and cleaned up on deactivation.
