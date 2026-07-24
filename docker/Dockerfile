@@ -41,8 +41,11 @@ RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16
 RUN cd /zephyr_ws && west blobs fetch hal_espressif
 
 # macro redefinition warnings (temporal fix),
-RUN perl -i -pe 's/^#define\s+(\w+)(\s+.*)?$/#ifndef $1\n#define $1$2\n#endif/' /zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in
-
+RUN perl -i -pe '
+  if (/^#define\s+(\w+)(\s+.*)?$/) {
+    $_ = "#ifndef $1\n#define $1$2\n#endif\n";
+  }
+' /zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
