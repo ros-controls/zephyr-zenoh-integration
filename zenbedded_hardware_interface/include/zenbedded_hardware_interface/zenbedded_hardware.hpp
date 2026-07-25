@@ -30,7 +30,6 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
-#include "std_msgs/msg/float64.hpp"
 #include "zenbedded_schema/interface_schema.hpp"
 
 namespace zenbedded
@@ -78,8 +77,6 @@ private:
   std::string zenoh_mode_;
   std::string state_topic_;
   std::string command_topic_;
-  bool introspection_enabled_ = false;
-  std::vector<std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64>>> introspection_pubs_;
 };
 
 }  // namespace zenbedded

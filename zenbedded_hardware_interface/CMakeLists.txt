@@ -13,7 +13,6 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(zenoh_cpp_vendor REQUIRED)
 find_package(realtime_tools REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(zenbedded_schema REQUIRED)
 
 add_library(zenbedded_hardware_interface SHARED
@@ -33,7 +32,6 @@ target_link_libraries(zenbedded_hardware_interface
     rclcpp_lifecycle::rclcpp_lifecycle
     zenohcxx::zenohc
     realtime_tools::realtime_tools
-    ${std_msgs_TARGETS}
 )
 
 pluginlib_export_plugin_description_file(hardware_interface zenbedded_hardware_interface.xml)
