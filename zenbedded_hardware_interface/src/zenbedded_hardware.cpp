@@ -83,6 +83,12 @@ CallbackReturn ZenbeddedHardware::on_init(
     REGISTER_ROS2_CONTROL_INTROSPECTION(f.component + "/" + f.field, &hw_states_[i]);
   }
 
+  for (size_t i = 0; i < schema_.total_command_interfaces(); i++)
+  {
+    const auto & f = schema_.command_fields()[i];
+    REGISTER_ROS2_CONTROL_INTROSPECTION(f.component + "/" + f.field, &hw_commands_[i]);
+  }
+
   RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware Interface Initialized!");
   return CallbackReturn::SUCCESS;
 }
