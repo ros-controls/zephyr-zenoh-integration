@@ -17,7 +17,7 @@
 
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include "zenbedded_rcl/interface_data.h"
+#include "zenbedded_rcl/generated/interface_data.h"
 
 class ZenbeddedClient
 {
