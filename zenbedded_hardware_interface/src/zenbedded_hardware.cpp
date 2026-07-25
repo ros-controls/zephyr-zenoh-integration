@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "hardware_interface/introspection.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "zenbedded_schema/interface_schema.hpp"
 
