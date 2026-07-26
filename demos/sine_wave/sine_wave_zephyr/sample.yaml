@@ -1,0 +1,9 @@
+sample:
+  name: Sine Wave Zephyr demo
+common:
+  build_only: true
+  tags: zenbedded
+tests:
+  sample.zenbedded.inverted_pendulum:
+    platform_allow:
+      - esp32s3_devkitc/esp32s3/procpu

@@ -1,0 +1,7 @@
+state_interfaces:
+  sine_wave:
+    position: float32
+command_interfaces:
+  sine_wave:
+    amplitude: float32
+    frequency: float32
