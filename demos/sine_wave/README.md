@@ -28,7 +28,7 @@ cd <ros_ws>
 # copy packages or use "ln -s" symlink into the workspace
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
-colcon build --packages-select zenbedded_hardware_interface zenbedded_schema
+colcon build --packages-select zenbedded_hardware_interface zenbedded_schema sine_wave_ros
 source install/setup.bash
 ros2 launch zenbedded_sine_wave sine_wave.launch.py
 ```
