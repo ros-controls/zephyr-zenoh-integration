@@ -42,17 +42,18 @@ RUN cd /zephyr_ws && west blobs fetch hal_espressif
 
 # macro redefinition warnings (temporal fix),
 ARG PICO_CONFIG="/zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in"
-RUN awk '
-  /^#define[ \t]+[A-Za-z_][A-Za-z0-9_]*/ {
-    name = $2
-    if (prev == "#ifndef " name) { print; prev = $0; next }
-    print "#ifndef " name
-    print
-    print "#endif"
-    prev = $0
-    next
-  }
-  { print; prev = $0 }
+ARG PICO_CONFIG="/zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in"
+RUN awk ' \
+  /^#define[ \t]+[A-Za-z_][A-Za-z0-9_]*/ { \
+    name = $2; \
+    if (prev == "#ifndef " name) { print; prev = $0; next } \
+    print "#ifndef " name; \
+    print; \
+    print "#endif"; \
+    prev = $0; \
+    next; \
+  } \
+  { print; prev = $0 } \
 ' ${PICO_CONFIG} > "${PICO_CONFIG}.wrapped" \
   && mv "${PICO_CONFIG}.wrapped" ${PICO_CONFIG}
 
