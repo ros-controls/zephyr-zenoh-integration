@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <math.h>
-#include <stdlib.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_event.h>
@@ -164,14 +163,11 @@ int main(void)
     if (i % 20 == 0)
     {
       LOG_INF(
-        "iter=%d state.motor_arm=%d.%02d "
-        "state.pendulum=%d.%02d cmd.motor_arm=%d.%02d",
-        i, static_cast<int>(s.motor_arm_position),
-        abs(static_cast<int>(s.motor_arm_position * 100) % 100),
-        static_cast<int>(s.pendulum_axis_position),
-        abs(static_cast<int>(s.pendulum_axis_position * 100) % 100),
-        static_cast<int>(cmd.motor_arm_position),
-        abs(static_cast<int>(cmd.motor_arm_position * 100) % 100));
+        "iter=%d state.motor_arm=%.2f "
+        "state.pendulum=%.2f cmd.motor_arm=%.2f",
+        i, static_cast<double>(s.motor_arm_position),
+        static_cast<double>(s.pendulum_axis_position),
+        static_cast<double>(cmd.motor_arm_position));
     }
 
     // A stale/never-changing command across many iterations is a real
