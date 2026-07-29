@@ -22,14 +22,14 @@ helper and just call `client.init()` directly.
 ## Building & flashing
 
 ```bash
-west build -p always -b esp32s3_devkitc/esp32s3/procpu zenbedded_rcl/tests/test_node
+west build -p always -b esp32s3_devkitc/esp32s3/procpu demos/rcl_cpp_test
 west flash --esp-device /dev/ttyUSB0
 ```
 
 Set real WiFi credentials at build time instead of committing them:
 
 ```bash
-west build -p always -b esp32s3_devkitc/esp32s3/procpu zenbedded_rcl/tests/test_node \
+west build -p always -b esp32s3_devkitc/esp32s3/procpu demos/rcl_cpp_test \
     -- -DWIFI_SSID=\"YourSSID\" \
        -DWIFI_PSK=\"YourPassword\"
 ```
@@ -39,12 +39,12 @@ WiFi APs block multicast, so this is usually what you want on real
 hardware):
 
 ```bash
-west build -p always -b esp32s3_devkitc/esp32s3/procpu zenbedded_rcl/tests/test_node \
+west build -p always -b esp32s3_devkitc/esp32s3/procpu demos/rcl_cpp_test \
     -- -DZENOH_MODE=\"client\" -DZENOH_LOCATOR=\"tcp/192.0.2.1:7447\"
 ```
 
 WiFi connect in this test node
-is bounded by `kWifiConnectTimeoutMs` (15s) rather than blocking forever —
+is bounded by `kWifiConnectTimeout` (15s) rather than blocking forever —
 it will report a `FAIL` and exit cleanly on bad credentials.
 
 
