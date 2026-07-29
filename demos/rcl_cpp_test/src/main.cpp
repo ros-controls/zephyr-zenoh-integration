@@ -165,8 +165,7 @@ int main(void)
       LOG_INF(
         "iter=%d state.motor_arm=%.2f "
         "state.pendulum=%.2f cmd.motor_arm=%.2f",
-        i, static_cast<double>(s.motor_arm_position),
-        static_cast<double>(s.pendulum_axis_position),
+        i, static_cast<double>(s.motor_arm_position), static_cast<double>(s.pendulum_axis_position),
         static_cast<double>(cmd.motor_arm_position));
     }
 
