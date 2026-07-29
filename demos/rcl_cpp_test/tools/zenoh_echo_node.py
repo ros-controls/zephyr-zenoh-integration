@@ -15,17 +15,12 @@
 # limitations under the License.
 
 """
-Host-side companion for zenbedded_rcl's tests/test_node firmware.
+Host-side companion for the demos/rcl_cpp_test firmware.
 
 Subscribes to the firmware's state topic, and for every state sample it
 receives, publishes a command sample back on the command topic. This closes
 the loop so the test node's `cmd.motor_arm_position` field is expected to
 change over time instead of sitting at 0.0.
-
-This is only useful once the Zenoh session/pub/sub block inside
-ZenbeddedClient::init() (zenbedded_client.cpp) is restored -- while it's
-commented out, the firmware never opens a Zenoh session and this script will
-just sit there with nothing to subscribe to.
 
 Requires: pip install eclipse-zenoh
 
