@@ -7,7 +7,10 @@ if(NOT DEFINED ZENBEDDED_SCHEMA_FILE)
             "  west build -- -DZENBEDDED_SCHEMA_FILE=/path/to/interface_schema.yaml\n"
             "or in your app's CMakeLists.txt before find_package(Zephyr ...):\n"
             "  set(ZENBEDDED_SCHEMA_FILE \${CMAKE_CURRENT_SOURCE_DIR}/interface_schema.yaml)")
+else()
+    set(ZENBEDDED_SCHEMA_FILE interface_schema.yaml)
 endif()
+
 
 # Resolve relative paths against the zephyr application dir.
 get_filename_component(ZENBEDDED_SCHEMA_FILE_ABS
