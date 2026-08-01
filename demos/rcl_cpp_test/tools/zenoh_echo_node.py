@@ -20,9 +20,9 @@ Host-side companion for the demos/rcl_cpp_test firmware.
 Subscribes to the firmware's state topic, and for every state sample it
 receives, publishes a command sample back on the command topic. This closes
 the loop so the test node's `cmd.motor_arm_position` field is expected to
-change over time instead of sitting at 0.0.
+change over time instead of sitting at the initial value.
 
-Requires: pip install eclipse-zenoh
+Requires: pip install eclipse-zenoh==1.9.0
 
 Usage:
     python3 zenoh_echo_node.py \
