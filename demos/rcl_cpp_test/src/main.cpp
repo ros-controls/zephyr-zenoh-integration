@@ -83,9 +83,8 @@ int connect_wifi_blocking(int timeout)
     return ret;
   }
 
-  // Belt-and-suspenders against the same race happening between the
-  // connect request above and k_sem_take below: poll briefly in addition
-  // to waiting on the semaphore, instead of trusting the event exclusively.
+  // poll briefly in addition to waiting on the semaphore, instead of trusting the event
+  // exclusively.
   int64_t deadline = k_uptime_get() + timeout * 1000;
   while (k_uptime_get() < deadline)
   {
@@ -101,7 +100,7 @@ int connect_wifi_blocking(int timeout)
       return 0;
     }
   }
-  // if (k_sem_take(&wifi_connected_sem, K_SECONDS(timeout))==0) return 0;
+
   LOG_ERR("WiFi connect timed out after %ds", timeout);
   return -ETIMEDOUT;
 }
@@ -144,13 +143,11 @@ int main(void)
   }
   report(client.is_initialized(), "client.is_initialized() is true after init()");
 
-  // --- exercise the public API surface ---
-  int mismatch_count = 0;
+  bool cmd_val_changed = false;
   int sync_calls = 0;
 
   for (int i = 0; i < kIterations; i++)
   {
-    // Write a deterministic, easy-to-eyeball waveform into state()
     zenbedded_state_t & s = client.state();
     s.motor_arm_position = sinf(static_cast<float>(i) * 0.1f) * 90.0f;
     s.pendulum_axis_position = static_cast<float>(i) * 0.01f;
@@ -169,13 +166,10 @@ int main(void)
         static_cast<double>(cmd.motor_arm_position));
     }
 
-    // A stale/never-changing command across many iterations is a real
-    // regression signal once tools/zenoh_echo_node.py is running as a
-    // peer; without it there's no command traffic and this is expected
-    // to stay at 0.0.
-    if (cmd.motor_arm_position == 0.0f)
+    // check if the value changes
+    if (cmd.motor_arm_position != 0.0f)
     {
-      mismatch_count++;
+      cmd_val_changed = true;
     }
 
     k_sleep(K_MSEC(1000 / kControlFreqHz));
@@ -183,11 +177,10 @@ int main(void)
 
   report(sync_calls == kIterations, "sync() called for every iteration without crashing");
 
-  bool loopback_ok = mismatch_count < kIterations;
   report(
-    loopback_ok,
+    cmd_val_changed,
     "received at least one non-zero command "
-    "(requires tools/zenoh_echo_node.py running as a peer)");
+    "(requires tools/zenoh_echo_node.py running)");
 
   LOG_INF("is_control_thread_running=%d", client.is_control_thread_running());
 
