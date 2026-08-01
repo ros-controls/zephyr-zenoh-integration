@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "hardware_interface/introspection.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "zenbedded_schema/interface_schema.hpp"
 
@@ -75,6 +76,18 @@ CallbackReturn ZenbeddedHardware::on_init(
   hw_commands_.resize(schema_.total_command_interfaces(), std::numeric_limits<double>::quiet_NaN());
   state_buffer_.writeFromNonRT(std::vector<uint8_t>(schema_.state_buffer_size(), 0));
   command_buffer_.resize(schema_.command_buffer_size(), 0);
+
+  for (size_t i = 0; i < schema_.total_state_interfaces(); i++)
+  {
+    const auto & f = schema_.state_fields()[i];
+    REGISTER_ROS2_CONTROL_INTROSPECTION(f.component + "/" + f.field, &hw_states_[i]);
+  }
+
+  for (size_t i = 0; i < schema_.total_command_interfaces(); i++)
+  {
+    const auto & f = schema_.command_fields()[i];
+    REGISTER_ROS2_CONTROL_INTROSPECTION(f.component + "/" + f.field, &hw_commands_[i]);
+  }
 
   RCLCPP_INFO(rclcpp::get_logger("ZenbeddedHardware"), "Hardware Interface Initialized!");
   return CallbackReturn::SUCCESS;
