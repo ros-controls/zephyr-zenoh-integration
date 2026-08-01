@@ -8,6 +8,7 @@ on:
     paths:
       - 'demos/**'
       - 'zenbedded_rcl/**'
+      - 'zenbedded_schema/**'
       - 'zenbedded_transport/**'
       - '.github/workflows/zephyr-twister.yml'
   push: *event
@@ -40,16 +41,17 @@ jobs:
       - name: Build Colcon Packages
         shell: bash
         run: |
+          source /opt/ros/jazzy/setup.bash
+          ln -sfn "$GITHUB_WORKSPACE/zenbedded_schema" /ros2_ws/src/zenbedded_schema
           cd /ros2_ws
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
           colcon build
 
-
       - name: Run twister (build + run native_sim)
         shell: bash
         run: |
-          source /ros2_ws/install/local-setup.sh
+          source /ros2_ws/install/setup.bash
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
