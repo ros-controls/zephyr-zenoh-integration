@@ -38,16 +38,14 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 #define STATE_TOPIC "zenbedded/sine_wave/state"
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
-#define M_PI 3.14159265358979323846f
-
-K_SEM_DEFINE(wifi_connected_sem, 0, 1);
+K_SEM_DEFINE(network_connected_sem, 0, 1);
 
 void net_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
 {
   if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
   {
     LOG_INF("got IPv4 address");
-    k_sem_give(&wifi_connected_sem);
+    k_sem_give(&network_connected_sem);
   }
 }
 
@@ -76,7 +74,7 @@ int connect_wifi_blocking()
     return ret;
   }
 
-  k_sem_take(&wifi_connected_sem, K_FOREVER);
+  k_sem_take(&network_connected_sem, K_FOREVER);
   return 0;
 }
 
