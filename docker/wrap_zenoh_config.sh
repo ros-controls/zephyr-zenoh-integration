@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ZENOH_PICO_CONFIG="${1:-/zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h.in}"
+ZENOH_PICO_CONFIG="${1:-/zephyr_ws/modules/lib/zenoh-pico/include/zenoh-pico/config.h}"
 
 awk ' \
   /^#define[ \t]+[A-Za-z_][A-Za-z0-9_]*/ { \
