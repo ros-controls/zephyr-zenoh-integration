@@ -55,4 +55,23 @@ def generate_launch_description():
         )
     )
 
-    return LaunchDescription([robot_state_publisher_node, delay_ros2_control_after_rsp])
+    sine_wave_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["sine_wave_controller", "--param-file", controllers_yaml],
+    )
+
+    delay_controller_after_ros2_control = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=ros2_control_node,
+            on_start=[sine_wave_controller_spawner],
+        )
+    )
+
+    return LaunchDescription(
+        [
+            robot_state_publisher_node,
+            delay_ros2_control_after_rsp,
+            delay_controller_after_ros2_control,
+        ]
+    )

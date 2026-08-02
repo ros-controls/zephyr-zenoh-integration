@@ -1,3 +1,14 @@
 controller_manager:
   ros__parameters:
     update_rate: 100
+
+    sine_wave_controller:
+      type: sine_wave_controller/SineWaveController
+
+sine_wave_controller:
+  ros__parameters:
+    hardware_component: sine_wave
+    cmd_interface_name: amplitude
+    amplitude: 5.0
+    frequency: 0.2 #hz
+    offset: 0.0
