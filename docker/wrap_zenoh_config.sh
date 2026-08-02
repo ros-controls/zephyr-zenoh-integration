@@ -16,4 +16,3 @@ awk ' \
   { print; prev = $0 } \
 ' "${ZENOH_PICO_CONFIG}" > "${ZENOH_PICO_CONFIG}.wrapped" \
   && mv "${ZENOH_PICO_CONFIG}.wrapped" "${ZENOH_PICO_CONFIG}"
-  
