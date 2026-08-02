@@ -4,4 +4,3 @@ state_interfaces:
 command_interfaces:
   sine_wave:
     amplitude: float32
-    frequency: float32
