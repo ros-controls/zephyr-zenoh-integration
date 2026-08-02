@@ -23,16 +23,16 @@
 LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 
 #ifndef WIFI_SSID
-#define WIFI_SSID "mechatronics"
+#define WIFI_SSID "mechatronic"
 #endif
 #ifndef WIFI_PSK
-#define WIFI_PSK "123454321"
+#define WIFI_PSK "87654321"
 #endif
 #ifndef ZENOH_MODE
 #define ZENOH_MODE "client"
 #endif
 #ifndef ZENOH_LOCATOR
-#define ZENOH_LOCATOR "tcp/10.244.80.128:7447"
+#define ZENOH_LOCATOR "tcp/10.70.246.128:7447"
 #endif
 
 #define STATE_TOPIC "zenbedded/sine_wave/state"
@@ -79,8 +79,8 @@ int connect_wifi_blocking()
 }
 
 float wave_amp = 5;
-float wave_period = 3000;  // MS
-uint32_t loop_freq = 100;  // hz
+float wave_frequency = 1.4;  // hz
+uint32_t loop_freq = 100;    // hz
 
 int main()
 {
@@ -100,13 +100,24 @@ int main()
 
   int64_t start_time = k_uptime_get();  // Get kernel boot time in ms
   int32_t cnt = 0;
+  bool cmd_recv = false;
   while (true)
   {
+    const zenbedded_command_t & cmd = client.command();
     zenbedded_state_t & state = client.state();
 
+    if (cmd.sine_wave_amplitude != 0.0f)
+    {
+      cmd_recv = true;
+    }
+    if (cmd_recv)
+    {
+      wave_amp = fabsf(cmd.sine_wave_amplitude);
+    }
+
     auto current_time_ms = static_cast<float>(k_uptime_get() - start_time);
-    float x = 2 * M_PI * current_time_ms / wave_period;
-    state.sine_wave_position = wave_amp * (sinf(x) + 1) / 2;
+    float x = 2 * static_cast<float>(M_PI) * current_time_ms * wave_frequency / 1000.0f;
+    state.sine_wave_position = wave_amp * sinf(x);
 
     if (++cnt == 500)
     {
