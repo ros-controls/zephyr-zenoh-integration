@@ -43,7 +43,7 @@ RUN cd /zephyr_ws && west blobs fetch hal_espressif
 # macro redefinition warnings (temporal fix),
 COPY docker/wrap_zenoh_config.sh /usr/local/bin/wrap_zenoh_config.sh
 RUN chmod +x /usr/local/bin/wrap_zenoh_config.sh
-RUN /usr/local/bin/wrap_pico_config.sh
+RUN /usr/local/bin/wrap_zenoh_config.sh
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
