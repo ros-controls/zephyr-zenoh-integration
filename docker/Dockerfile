@@ -40,10 +40,10 @@ RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16
 
 RUN cd /zephyr_ws && west blobs fetch hal_espressif
 
-# macro redefinition warnings (temporal fix),
-COPY docker/wrap_zenoh_config.sh /usr/local/bin/wrap_zenoh_config.sh
-RUN chmod +x /usr/local/bin/wrap_zenoh_config.sh
-RUN /usr/local/bin/wrap_zenoh_config.sh
+# apply patch containing macro redefinition warnings fix
+WORKDIR /zephyr_ws/modules/lib/zenoh-pico
+COPY docker/wrap_zenoh_config.patch .
+RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
