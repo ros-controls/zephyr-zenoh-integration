@@ -40,9 +40,9 @@ jobs:
       - name: Apply wrap_zenoh_config.patch
         shell: bash
         run: |
+          PATCH_PATH="${{ github.workspace }}/docker/wrap_zenoh_config.patch"
           cd /zephyr_ws/modules/lib/zenoh-pico
-          cp docker/wrap_zenoh_config.patch .
-          git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
+          git apply "$PATCH_PATH"
 
       - name: Run twister (build + run native_sim)
         shell: bash
