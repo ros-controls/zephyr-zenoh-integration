@@ -1,8 +1,8 @@
 sample:
-  name: RCL C++ Test
+  name: Zenbedded RCL test
 common:
   build_only: true
-  tags: zenoh
+  tags: zenbedded_rcl
 tests:
   sample.zenbedded.rcl_cpp_test:
     platform_allow:
