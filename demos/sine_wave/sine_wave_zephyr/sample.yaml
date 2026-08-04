@@ -4,6 +4,6 @@ common:
   build_only: true
   tags: zenbedded
 tests:
-  sample.zenbedded.inverted_pendulum:
+  sample.zenbedded.sine_wave_demo:
     platform_allow:
       - esp32s3_devkitc/esp32s3/procpu
