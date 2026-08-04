@@ -54,7 +54,8 @@ jobs:
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
           cp docker/wrap_zenoh_config.patch "$PICO_PATH/wrap_zenoh_config.patch"
           cd $PICO_PATH
-          git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
+          git apply wrap_zenoh_config.patch 2>/dev/null || true
+          rm wrap_zenoh_config.patch
 
       - name: Run twister (build + run native_sim)
         shell: bash
