@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# yaml-cpp only has to be resolvable for consumers that link the
+# zenbedded_schema library. Consumers that just call
+# zenbedded_generate_header() may be cross-compiling, where the host's
+# yaml-cpp is deliberately out of reach, so don't insist on finding it.
 find_package(yaml-cpp QUIET)
 if(NOT yaml-cpp_FOUND)
-  find_package(yaml_cpp_vendor REQUIRED)
-  find_package(yaml-cpp REQUIRED)
+  find_package(yaml_cpp_vendor QUIET)
+  find_package(yaml-cpp QUIET)
 endif()
 
 function(zenbedded_generate_header)

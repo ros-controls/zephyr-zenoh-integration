@@ -1,13 +1,9 @@
 
 
 if(NOT DEFINED ZENBEDDED_SCHEMA_FILE)
-    message(FATAL_ERROR
-            "ZENBEDDED_SCHEMA_FILE is not set.\n"
-            "Set it to your interface schema file, e.g.:\n"
-            "  west build -- -DZENBEDDED_SCHEMA_FILE=/path/to/interface_schema.yaml\n"
-            "or in your app's CMakeLists.txt before find_package(Zephyr ...):\n"
-            "  set(ZENBEDDED_SCHEMA_FILE \${CMAKE_CURRENT_SOURCE_DIR}/interface_schema.yaml)")
+    set(ZENBEDDED_SCHEMA_FILE interface_schema.yaml)
 endif()
+
 
 # Resolve relative paths against the zephyr application dir.
 get_filename_component(ZENBEDDED_SCHEMA_FILE_ABS
