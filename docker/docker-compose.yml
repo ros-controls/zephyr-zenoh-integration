@@ -8,6 +8,7 @@ services:
       # --- ROS 2 Workspace (Ubuntu/Host Side) ---
       - ../zenbedded_transport:/ros2_ws/src/zenbedded_transport
       - ../zenbedded_hardware_interface:/ros2_ws/src/zenbedded_hardware_interface
+      - ../zenbedded_schema:/ros2_ws/src/zenbedded_schema
 
       # --- Zephyr RTOS Workspace (MCU Side) ---
       - ../zenbedded_transport:/zephyr_ws/zenbedded_transport

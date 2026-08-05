@@ -8,6 +8,7 @@ on:
     paths:
       - 'demos/**'
       - 'zenbedded_rcl/**'
+      - 'zenbedded_schema/**'
       - 'zenbedded_transport/**'
       - '.github/workflows/zephyr-twister.yml'
   push: *event
@@ -37,17 +38,29 @@ jobs:
           cp docker/image-west.yml        /zephyr_ws/manifest-repo/west.yml
           cd /zephyr_ws && west update zenoh-pico
 
+      - name: Build Colcon Packages
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          ln -sfn "$GITHUB_WORKSPACE/zenbedded_schema" /ros2_ws/src/zenbedded_schema
+          cd /ros2_ws
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+          colcon build
+
       - name: Apply wrap_zenoh_config.patch
         shell: bash
         run: |
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
           cp docker/wrap_zenoh_config.patch "$PICO_PATH/wrap_zenoh_config.patch"
           cd $PICO_PATH
-          git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
+          git apply wrap_zenoh_config.patch 2>/dev/null || true
+          rm wrap_zenoh_config.patch
 
       - name: Run twister (build + run native_sim)
         shell: bash
         run: |
+          source /ros2_ws/install/setup.bash
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
