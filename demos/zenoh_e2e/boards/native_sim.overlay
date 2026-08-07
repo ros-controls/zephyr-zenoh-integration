@@ -1,0 +1,6 @@
+/ {
+    uart0: uart {
+        status = "okay";
+        compatible = "zephyr,native-pty-uart";
+    };
+};
