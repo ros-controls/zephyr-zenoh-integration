@@ -1,0 +1,11 @@
+sample:
+  description: Zenoh E2E test, testing sending message from the host to the firmware
+  name: zenoh e2e
+common:
+  harness: pytest
+  harness_config:
+    pytest_dut_scope: function
+tests:
+  sample.zenbedded.zenoh_e2e:
+    platform_allow:
+      - native_sim
