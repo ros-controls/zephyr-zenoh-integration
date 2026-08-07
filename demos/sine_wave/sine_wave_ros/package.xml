@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>zenbedded_sine_wave</name>
+    <version>0.0.1</version>
+    <description>launch for the Zenbedded sine-wave demo</description>
+    <maintainer email="enejiohieku@gmail.com">Eneji Ohieku</maintainer>
+    <license>Apache-2.0</license>
+
+    <buildtool_depend>ament_cmake</buildtool_depend>
+
+    <depend>rclcpp</depend>
+    <depend>rclcpp_lifecycle</depend>
+    <depend>zenbedded_hardware_interface</depend>
+    <depend>robot_state_publisher</depend>
+    <depend>controller_manager</depend>
+    <depend>hardware_interface</depend>
+    <depend>controller_interface</depend>
+    <depend>pluginlib</depend>
+    <depend>xacro</depend>
+    <depend>launch_ros</depend>
+
+    <export>
+        <build_type>ament_cmake</build_type>
+        <controller_interface plugin="${prefix}/sine_wave_controller.xml"/>
+    </export>
+</package>
