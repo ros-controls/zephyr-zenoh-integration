@@ -8,6 +8,8 @@ common:
     pytest_args:
       - '-p'
       - 'no:launch_testing'
+      - '-p'
+      - 'no:launch_ros'
 tests:
   sample.zenbedded.zenoh_e2e:
     platform_allow:
