@@ -1,8 +1,8 @@
 diff --git a/include/zenoh-pico/config.h b/include/zenoh-pico/config.h
-index 3e5e7e28..ae38bd66 100644
+index 41829f74..e263e0fa 100644
 --- a/include/zenoh-pico/config.h
 +++ b/include/zenoh-pico/config.h
-@@ -12,57 +12,141 @@
+@@ -12,63 +12,159 @@
  //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
  //
 
@@ -31,11 +31,23 @@ index 3e5e7e28..ae38bd66 100644
 +#ifndef Z_TRANSPORT_LEASE
  #define Z_TRANSPORT_LEASE 10000
 +#endif
-+#ifndef ZP_PERIODIC_SCHEDULER_MAX_TASKS
- #define ZP_PERIODIC_SCHEDULER_MAX_TASKS 64
++#ifndef Z_TRANSPORT_LEASE_EXPIRE_FACTOR
+ #define Z_TRANSPORT_LEASE_EXPIRE_FACTOR 3
++#endif
++#ifndef Z_RUNTIME_MAX_TASKS
+ #define Z_RUNTIME_MAX_TASKS 64
++#endif
++#ifndef Z_TRANSPORT_ACCEPT_TIMEOUT
+ #define Z_TRANSPORT_ACCEPT_TIMEOUT 1000
++#endif
++#ifndef Z_TRANSPORT_CONNECT_TIMEOUT
+ #define Z_TRANSPORT_CONNECT_TIMEOUT 10000
 +#endif
 
  /* #undef Z_FEATURE_UNSTABLE_API */
++#ifndef Z_FEATURE_CONNECTIVITY
+ #define Z_FEATURE_CONNECTIVITY 0
++#endif
 +#ifndef Z_FEATURE_MULTI_THREAD
  #define Z_FEATURE_MULTI_THREAD 1
 +#endif
@@ -111,6 +123,9 @@ index 3e5e7e28..ae38bd66 100644
 +#ifndef Z_FEATURE_LOCAL_SUBSCRIBER
  #define Z_FEATURE_LOCAL_SUBSCRIBER 0
 +#endif
++#ifndef Z_FEATURE_LOCAL_QUERYABLE
+ #define Z_FEATURE_LOCAL_QUERYABLE 0
++#endif
 +#ifndef Z_FEATURE_SESSION_CHECK
  #define Z_FEATURE_SESSION_CHECK 1
 +#endif
@@ -141,10 +156,13 @@ index 3e5e7e28..ae38bd66 100644
 +#ifndef Z_FEATURE_PERIODIC_TASKS
  #define Z_FEATURE_PERIODIC_TASKS 0
 +#endif
++#ifndef Z_FEATURE_ADMIN_SPACE
+ #define Z_FEATURE_ADMIN_SPACE 0
++#endif
 
  // End of CMake generation
 
-@@ -74,10 +158,18 @@
+@@ -80,10 +176,18 @@
   * Accepted values : `"client"`, `"peer"`.
   * Default value : `"client"`.
   */
@@ -163,7 +181,7 @@ index 3e5e7e28..ae38bd66 100644
 
  /**
   * The locator of a peer to connect to.
-@@ -85,7 +177,9 @@
+@@ -91,7 +195,9 @@
   * Default value : None.
   * Multiple values are accepted in peer to peer unicast mode.
   */
@@ -173,7 +191,7 @@ index 3e5e7e28..ae38bd66 100644
 
  /**
   * A locator to listen on.
-@@ -93,126 +187,198 @@
+@@ -99,121 +205,191 @@
   * Default value : None.
   * Multiple values are not accepted in zenoh-pico.
   */
@@ -323,13 +341,6 @@ index 3e5e7e28..ae38bd66 100644
 +#endif
 
  /**
-  * Default session lease expire factor.
-  */
-+#ifndef Z_TRANSPORT_LEASE_EXPIRE_FACTOR
- #define Z_TRANSPORT_LEASE_EXPIRE_FACTOR 3
-+#endif
-
- /**
   * Default multicast session join interval in milliseconds.
   */
 +#ifndef Z_JOIN_INTERVAL
@@ -373,10 +384,10 @@ index 3e5e7e28..ae38bd66 100644
 
  #endif /* INCLUDE_ZENOH_PICO_CONFIG_H */
 diff --git a/include/zenoh-pico/config.h.in b/include/zenoh-pico/config.h.in
-index a84fbea8..41aeeded 100644
+index 8974b631..37b8836a 100644
 --- a/include/zenoh-pico/config.h.in
 +++ b/include/zenoh-pico/config.h.in
-@@ -12,57 +12,141 @@
+@@ -12,62 +12,156 @@
  //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
  //
 
@@ -405,11 +416,23 @@ index a84fbea8..41aeeded 100644
 +#ifndef Z_TRANSPORT_LEASE
  #define Z_TRANSPORT_LEASE @Z_TRANSPORT_LEASE@
 +#endif
-+#ifndef ZP_PERIODIC_SCHEDULER_MAX_TASKS
- #define ZP_PERIODIC_SCHEDULER_MAX_TASKS @ZP_PERIODIC_SCHEDULER_MAX_TASKS@
++#ifndef Z_TRANSPORT_LEASE_EXPIRE_FACTOR
+ #define Z_TRANSPORT_LEASE_EXPIRE_FACTOR @Z_TRANSPORT_LEASE_EXPIRE_FACTOR@
++#endif
++#ifndef Z_RUNTIME_MAX_TASKS
+ #define Z_RUNTIME_MAX_TASKS @Z_RUNTIME_MAX_TASKS@
++#endif
++#ifndef Z_TRANSPORT_ACCEPT_TIMEOUT
+ #define Z_TRANSPORT_ACCEPT_TIMEOUT @Z_TRANSPORT_ACCEPT_TIMEOUT@
++#endif
++#ifndef Z_TRANSPORT_CONNECT_TIMEOUT
+ #define Z_TRANSPORT_CONNECT_TIMEOUT @Z_TRANSPORT_CONNECT_TIMEOUT@
 +#endif
 
  #cmakedefine Z_FEATURE_UNSTABLE_API
++#ifndef Z_FEATURE_CONNECTIVITY
+ #define Z_FEATURE_CONNECTIVITY @Z_FEATURE_CONNECTIVITY@
++#endif
 +#ifndef Z_FEATURE_MULTI_THREAD
  #define Z_FEATURE_MULTI_THREAD @Z_FEATURE_MULTI_THREAD@
 +#endif
@@ -485,6 +508,9 @@ index a84fbea8..41aeeded 100644
 +#ifndef Z_FEATURE_LOCAL_SUBSCRIBER
  #define Z_FEATURE_LOCAL_SUBSCRIBER @Z_FEATURE_LOCAL_SUBSCRIBER@
 +#endif
++#ifndef Z_FEATURE_LOCAL_QUERYABLE
+ #define Z_FEATURE_LOCAL_QUERYABLE @Z_FEATURE_LOCAL_QUERYABLE@
++#endif
 +#ifndef Z_FEATURE_SESSION_CHECK
  #define Z_FEATURE_SESSION_CHECK @Z_FEATURE_SESSION_CHECK@
 +#endif
@@ -512,13 +538,13 @@ index a84fbea8..41aeeded 100644
 +#ifndef Z_FEATURE_MULTICAST_DECLARATIONS
  #define Z_FEATURE_MULTICAST_DECLARATIONS @Z_FEATURE_MULTICAST_DECLARATIONS@
 +#endif
-+#ifndef Z_FEATURE_PERIODIC_TASKS
- #define Z_FEATURE_PERIODIC_TASKS @Z_FEATURE_PERIODIC_TASKS@
++#ifndef Z_FEATURE_ADMIN_SPACE
+ #define Z_FEATURE_ADMIN_SPACE @Z_FEATURE_ADMIN_SPACE@
 +#endif
 
  // End of CMake generation
 
-@@ -74,10 +158,18 @@
+@@ -79,10 +173,18 @@
   * Accepted values : `"client"`, `"peer"`.
   * Default value : `"client"`.
   */
@@ -537,7 +563,7 @@ index a84fbea8..41aeeded 100644
 
  /**
   * The locator of a peer to connect to.
-@@ -85,7 +177,9 @@
+@@ -90,7 +192,9 @@
   * Default value : None.
   * Multiple values are accepted in peer to peer unicast mode.
   */
@@ -547,7 +573,7 @@ index a84fbea8..41aeeded 100644
 
  /**
   * A locator to listen on.
-@@ -93,126 +187,198 @@
+@@ -98,121 +202,191 @@
   * Default value : None.
   * Multiple values are not accepted in zenoh-pico.
   */
@@ -697,13 +723,6 @@ index a84fbea8..41aeeded 100644
 +#endif
 
  /**
-  * Default session lease expire factor.
-  */
-+#ifndef Z_TRANSPORT_LEASE_EXPIRE_FACTOR
- #define Z_TRANSPORT_LEASE_EXPIRE_FACTOR 3
-+#endif
-
- /**
   * Default multicast session join interval in milliseconds.
   */
 +#ifndef Z_JOIN_INTERVAL
@@ -746,3 +765,15 @@ index a84fbea8..41aeeded 100644
 +#endif
 
  #endif /* INCLUDE_ZENOH_PICO_CONFIG_H */
+diff --git a/zephyr/CMakeLists.txt b/zephyr/CMakeLists.txt
+index 651fdb27..c7a93582 100644
+--- a/zephyr/CMakeLists.txt
++++ b/zephyr/CMakeLists.txt
+@@ -33,6 +33,7 @@ file(GLOB_RECURSE Sources
+   "../src/collections/*.c"
+   "../src/link/*.c"
+   "../src/net/*.c"
++  "../src/runtime/*.c"
+   "../src/protocol/*.c"
+   "../src/session/*.c"
+   "../src/transport/*.c"

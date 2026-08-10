@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <esp_wifi.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
+#include <cstring>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
 LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
@@ -26,13 +28,13 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 #define WIFI_SSID "mechatronic"
 #endif
 #ifndef WIFI_PSK
-#define WIFI_PSK "87654321"
+#define WIFI_PSK "9876543210"
 #endif
 #ifndef ZENOH_MODE
 #define ZENOH_MODE "client"
 #endif
 #ifndef ZENOH_LOCATOR
-#define ZENOH_LOCATOR "tcp/10.70.246.128:7447"
+#define ZENOH_LOCATOR "tcp/10.75.105.128:7447"
 #endif
 
 #define STATE_TOPIC "zenbedded/sine_wave/state"
@@ -40,7 +42,7 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 
 K_SEM_DEFINE(network_connected_sem, 0, 1);
 
-void net_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+void net_event_handler(net_mgmt_event_callback * cb, uint64_t mgmt_event, net_if * iface)
 {
   if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
   {
@@ -89,6 +91,9 @@ int main()
   connect_wifi_blocking();
   k_sleep(K_MSEC(100));
 
+  // // Disable Wi-Fi power saving so packets aren't delayed
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  k_sleep(K_MSEC(200));
   static ZenbeddedClient client;
 
   int ret = client.init(STATE_TOPIC, CMD_TOPIC, ZENOH_MODE, ZENOH_LOCATOR, loop_freq);
@@ -106,7 +111,7 @@ int main()
     const zenbedded_command_t & cmd = client.command();
     zenbedded_state_t & state = client.state();
 
-    if (cmd.sine_wave_amplitude != 0.0f)
+    if (fabsf(cmd.sine_wave_amplitude) >= 1e-6)
     {
       cmd_recv = true;
     }

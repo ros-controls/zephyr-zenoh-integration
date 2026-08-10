@@ -30,12 +30,17 @@ zenbedded_generate_header(
 )
 
 
-zephyr_library()
+# ==========================================
+# Zenbedded RCL Lib
+# ==========================================
+zephyr_library_named(zenbedded_rcl)
 zephyr_library_sources(
         src/hardware_component.cpp
         src/zenbedded_client.cpp
 )
 zephyr_library_include_directories(include)
+zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
+
 
 # Ensure the header exists before library compiles.
-add_dependencies(${ZEPHYR_CURRENT_LIBRARY} ${generate_interface_data})
+add_dependencies(zenbedded_rcl ${generate_interface_data})

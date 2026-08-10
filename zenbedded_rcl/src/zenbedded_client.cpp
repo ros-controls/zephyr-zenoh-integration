@@ -15,6 +15,7 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 

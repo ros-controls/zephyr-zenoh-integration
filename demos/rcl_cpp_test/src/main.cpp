@@ -44,7 +44,7 @@ constexpr int kWifiConnectTimeout = 15;
 
 K_SEM_DEFINE(wifi_connected_sem, 0, 1);
 
-void net_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
+void net_event_handler(net_mgmt_event_callback * cb, uint64_t mgmt_event, net_if * iface)
 {
   if (mgmt_event == NET_EVENT_L4_CONNECTED)
   {
