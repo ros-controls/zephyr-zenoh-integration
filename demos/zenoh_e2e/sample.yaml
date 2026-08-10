@@ -5,6 +5,9 @@ common:
   harness: pytest
   harness_config:
     pytest_dut_scope: function
+    pytest_args:
+      - '-p'
+      - 'no:launch_testing'
 tests:
   sample.zenbedded.zenoh_e2e:
     platform_allow:
