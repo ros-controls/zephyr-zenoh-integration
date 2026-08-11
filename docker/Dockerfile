@@ -43,7 +43,8 @@ RUN ARCH=$(uname -m) && \
 
 RUN cd /zephyr_ws
 RUN west blobs fetch hal_espressif
-RUN west packages pip --install
+# install all python dependencies for all subpackages (not only zephyr)
+RUN west packages pip --install --ignore-venv-check -- --break-system-packages
 
 # apply patch containing macro redefinition warnings fix
 WORKDIR /zephyr_ws/modules/lib/zenoh-pico
