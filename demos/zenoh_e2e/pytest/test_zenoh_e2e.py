@@ -12,9 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
+import zenoh
 from twister_harness import DeviceAdapter
 
 
-def test_zenoh_peer_connects(zenoh_router, dut: DeviceAdapter):
-    lines = dut.readlines_until(regex=r"Zenoh peer connected", timeout=10)
-    assert any("Zenoh peer connected" in line for line in lines)
+def test_zenoh_client_connects(zenoh_router, dut: DeviceAdapter):
+    lines = dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
+    assert any("Zenoh client connected" in line for line in lines)
+
+
+def test_host_message_is_printed(zenoh_router, dut: DeviceAdapter):
+    message = "hello from the host"
+    config = zenoh.Config()
+    config.insert_json5("connect/endpoints", json.dumps(["tcp/127.0.0.1:7447"]))
+
+    session = zenoh.open(config)
+    try:
+        lines = dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
+        assert any("Zenoh client connected" in line for line in lines)
+
+        publisher = session.declare_publisher("zenbedded/e2e/test")
+        publisher.put(message)
+
+        lines = dut.readlines_until(regex=r"Received test message:", timeout=10)
+        assert any(f"Received test message: {message}" in line for line in lines)
+    finally:
+        session.close()
