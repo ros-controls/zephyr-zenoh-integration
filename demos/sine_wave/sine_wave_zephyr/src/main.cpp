@@ -49,7 +49,11 @@ uint32_t loop_freq = 100;    // hz
 
 int main()
 {
-  LOG_INF("starting test node");
+  static net_mgmt_event_callback cb;
+  net_mgmt_init_event_callback(&cb, net_event_handler, NET_EVENT_IPV4_ADDR_ADD);
+  net_mgmt_add_event_callback(&cb);
+
+  LOG_INF("starting Sine Wave Zephyr App");
 
   LOG_INF("Waiting for IPV4 address");
   k_sem_take(&network_connected_sem, K_FOREVER);
