@@ -32,31 +32,20 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 #define STATE_TOPIC "zenbedded/sine_wave/state"
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
-K_SEM_DEFINE(network_connected_sem, 0, 1);
-
-void net_event_handler(net_mgmt_event_callback * cb, uint64_t mgmt_event, net_if * iface)
-{
-  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
-  {
-    LOG_INF("got IPv4 address");
-    k_sem_give(&network_connected_sem);
-  }
-}
-
 float wave_amp = 5;
 float wave_frequency = 1.4;  // hz
 uint32_t loop_freq = 100;    // hz
 
 int main()
 {
-  static net_mgmt_event_callback cb;
-  net_mgmt_init_event_callback(&cb, net_event_handler, NET_EVENT_IPV4_ADDR_ADD);
-  net_mgmt_add_event_callback(&cb);
-
   LOG_INF("starting Sine Wave Zephyr App");
-
   LOG_INF("Waiting for IPV4 address");
-  k_sem_take(&network_connected_sem, K_FOREVER);
+  net_if * iface = net_if_get_default();
+  while (net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) == nullptr)
+  {
+    k_sleep(K_MSEC(200));
+  }
+  LOG_INF("Got IPV4 address");
 
   // Disable Wi-Fi power saving
   esp_wifi_set_ps(WIFI_PS_NONE);
