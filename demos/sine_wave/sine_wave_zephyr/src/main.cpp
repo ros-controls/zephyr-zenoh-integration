@@ -87,6 +87,7 @@ uint32_t loop_freq = 100;    // hz
 int main()
 {
   LOG_INF("starting test node");
+  float_t a = sinf(0.0f);
   k_sleep(K_MSEC(2000));
   connect_wifi_blocking();
   k_sleep(K_MSEC(100));
@@ -108,7 +109,7 @@ int main()
   bool cmd_recv = false;
   while (true)
   {
-    const zenbedded_command_t & cmd = client.command();
+    zenbedded_command_t cmd = client.command();
     zenbedded_state_t & state = client.state();
 
     if (fabsf(cmd.sine_wave_amplitude) >= 1e-6)
@@ -120,9 +121,9 @@ int main()
       wave_amp = fabsf(cmd.sine_wave_amplitude);
     }
 
-    auto current_time_ms = static_cast<float>(k_uptime_get() - start_time);
-    float x = 2 * static_cast<float>(M_PI) * current_time_ms * wave_frequency / 1000.0f;
-    state.sine_wave_position = wave_amp * sinf(x);
+    auto current_time_ms = static_cast<double>(k_uptime_get() - start_time);
+    double x = 2.0 * M_PI * current_time_ms * wave_frequency / 1000.0;
+    state.sine_wave_position = wave_amp * sin(x);
 
     if (++cnt == 500)
     {

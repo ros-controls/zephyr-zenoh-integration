@@ -39,7 +39,7 @@ zephyr_library_sources(
         src/zenbedded_client.cpp
 )
 zephyr_library_include_directories(include)
-zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
+#zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
 
 
 # Ensure the header exists before library compiles.
