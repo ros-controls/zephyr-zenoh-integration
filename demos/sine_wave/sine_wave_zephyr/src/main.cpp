@@ -39,8 +39,16 @@ uint32_t loop_freq = 100;    // hz
 int main()
 {
   LOG_INF("starting Sine Wave Zephyr App");
-  LOG_INF("Waiting for IPV4 address");
   net_if * iface = net_if_get_default();
+
+  LOG_INF("connecting to WiFi using stored credentials...");
+  while (net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, nullptr, 0) != 0)
+  {
+    LOG_ERR("WiFi connect-stored request failed... retrying...");
+    k_sleep(K_MSEC(200));
+  }
+
+  LOG_INF("Connected... Waiting for IPV4 address");
   while (net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) == nullptr)
   {
     k_sleep(K_MSEC(200));
