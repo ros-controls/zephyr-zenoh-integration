@@ -20,7 +20,7 @@
 #define ENDPOINT "tcp/127.0.0.1:7447"
 #define TEST_TOPIC "zenbedded/e2e/test"
 
-static void on_test_message(z_loaned_sample_t *sample, void *arg)
+static void on_test_message(z_loaned_sample_t * sample, void * arg)
 {
   ARG_UNUSED(arg);
 
@@ -78,8 +78,7 @@ int main(void)
 
   z_owned_subscriber_t subscriber;
   if (
-    z_declare_subscriber(
-      z_loan(session), &subscriber, z_loan(keyexpr), z_move(callback), NULL) < 0)
+    z_declare_subscriber(z_loan(session), &subscriber, z_loan(keyexpr), z_move(callback), NULL) < 0)
   {
     printf("Zenoh subscriber declaration failed\n");
     z_close(z_loan_mut(session), NULL);
