@@ -40,10 +40,9 @@ RUN ARCH=$(uname -m) && \
     && cd zephyr-sdk-${ZEPHYR_SDK_VERSION} \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
-RUN cd /zephyr_ws
-RUN west blobs fetch hal_espressif
-# install all python dependencies for all subpackages (not only zephyr)
+# Install all python dependencies for all subpackages
 RUN west packages pip --install --ignore-venv-check -- --break-system-packages
+RUN west blobs fetch hal_espressif
 
 # apply patch containing macro redefinition warnings fix
 WORKDIR /zephyr_ws/modules/lib/zenoh-pico
