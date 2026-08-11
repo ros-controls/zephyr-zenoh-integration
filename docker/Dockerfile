@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     ccache dfu-util device-tree-compiler wget \
     python3-dev python3-tk python3-wheel xz-utils file \
     make gcc libsdl2-dev libmagic1 git \
+    libudev-dev libusb-1.0-0-dev pkg-config \
     ros-jazzy-ros2-control \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
@@ -40,7 +41,9 @@ RUN ARCH=$(uname -m) && \
     && cd zephyr-sdk-0.16.8 \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
-RUN cd /zephyr_ws && west blobs fetch hal_espressif
+RUN cd /zephyr_ws
+RUN west blobs fetch hal_espressif
+RUN west packages pip --install
 
 # apply patch containing macro redefinition warnings fix
 WORKDIR /zephyr_ws/modules/lib/zenoh-pico
@@ -49,7 +52,7 @@ RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-0.16.8
+ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-1.0.0
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Set up ROS 2 workspace structure
