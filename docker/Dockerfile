@@ -52,7 +52,7 @@ RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-1.0.0
+ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-${ZEPHYR_SDK_VERSION}
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Set up ROS 2 workspace structure
