@@ -8,7 +8,7 @@ menu "Zenbedded RCL Configuration"
 
     config ZENBEDDED_RCL_THREAD_PRIORITY
         int "Zenbedded thread priority"
-        default 5
+        default 1
         help
             Zephyr thread priority for the zenbedded thread.
             Lower number = higher priority.
