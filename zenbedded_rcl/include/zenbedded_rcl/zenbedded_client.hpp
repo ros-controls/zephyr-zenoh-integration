@@ -27,9 +27,7 @@ public:
   /// @brief initialize the zenbedded client
   /// @param control_freq the loop frequency in Hz (thread only start on positive values)
   /// @return int
-  int init(
-    const char * state_topic, const char * cmd_topic, const char * zenoh_mode = "client",
-    const char * zenoh_locator = "", uint32_t control_freq = 100);
+  int init(const char * state_topic, const char * cmd_topic, uint32_t control_freq = 100);
 
   // Deinitialize the client
   void destroy();
