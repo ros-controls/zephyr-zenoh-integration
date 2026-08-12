@@ -12,28 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <math.h>
+#include <esp_wifi.h>
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
+#include <cmath>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
 LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
-
-#ifndef WIFI_SSID
-#define WIFI_SSID "mechatronics"
-#endif
-#ifndef WIFI_PSK
-#define WIFI_PSK "123454321"
-#endif
-#ifndef ZENOH_MODE
-#define ZENOH_MODE "client"
-#endif
-#ifndef ZENOH_LOCATOR
-#define ZENOH_LOCATOR "tcp/10.79.152.128:7447"
-#endif
 
 #define STATE_TOPIC "zenbedded/test/state"
 #define CMD_TOPIC "zenbedded/test/cmd"
@@ -41,69 +27,6 @@ LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
 constexpr uint32_t kControlFreqHz = 50;
 constexpr int kIterations = 200;  // ~4s at 50Hz
 constexpr int kWifiConnectTimeout = 15;
-
-K_SEM_DEFINE(wifi_connected_sem, 0, 1);
-
-void net_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
-{
-  if (mgmt_event == NET_EVENT_L4_CONNECTED)
-  {
-    LOG_INF("ZENBEDDED_TEST: got IPv4 address");
-    k_sem_give(&wifi_connected_sem);
-  }
-}
-
-static bool already_has_ipv4(net_if * iface)
-{
-  return net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) != nullptr;
-}
-
-int connect_wifi_blocking(int timeout)
-{
-  static net_mgmt_event_callback cb;
-  net_mgmt_init_event_callback(&cb, net_event_handler, NET_EVENT_L4_CONNECTED);
-  net_mgmt_add_event_callback(&cb);
-
-  net_if * iface = net_if_get_default();
-
-  wifi_connect_req_params params = {
-    .ssid = reinterpret_cast<const uint8_t *>(WIFI_SSID),
-    .ssid_length = sizeof(WIFI_SSID) - 1,
-    .psk = reinterpret_cast<const uint8_t *>(WIFI_PSK),
-    .psk_length = sizeof(WIFI_PSK) - 1,
-    .channel = WIFI_CHANNEL_ANY,
-    .security = WIFI_SECURITY_TYPE_PSK,
-  };
-
-  LOG_INF("connecting to WiFi...");
-  int ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params, sizeof(params));
-  if (ret)
-  {
-    LOG_ERR("WiFi connect request failed: %d", ret);
-    return ret;
-  }
-
-  // poll briefly in addition to waiting on the semaphore, instead of trusting the event
-  // exclusively.
-  int64_t deadline = k_uptime_get() + timeout * 1000;
-  while (k_uptime_get() < deadline)
-  {
-    if (k_sem_take(&wifi_connected_sem, K_MSEC(200)) == 0)
-    {
-      return 0;
-    }
-    if (already_has_ipv4(iface))
-    {
-      LOG_INF(
-        "IP appeared without the event firing (race with "
-        "callback registration) -- continuing anyway");
-      return 0;
-    }
-  }
-
-  LOG_ERR("WiFi connect timed out after %ds", timeout);
-  return -ETIMEDOUT;
-}
 
 static void report(bool pass, const char * msg)
 {
@@ -120,21 +43,38 @@ static void report(bool pass, const char * msg)
 int main(void)
 {
   LOG_INF("starting test node");
-  k_sleep(K_MSEC(500));
 
-  // --- WiFi bring-up (test node's job now, not the module's) ---
-  int wifi_ret = connect_wifi_blocking(kWifiConnectTimeout);
-  report(wifi_ret == 0, "WiFi connected and got an IP");
-  if (wifi_ret != 0)
+  LOG_INF("starting Sine Wave Zephyr App");
+  net_if * iface = net_if_get_default();
+
+  LOG_INF("connecting to WiFi using stored credentials...");
+
+  uint32_t timer = k_uptime_get_32();
+  while (net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, nullptr, 0) != 0)
   {
-    LOG_ERR("cannot continue without network, aborting");
-    return wifi_ret;
+    if (k_uptime_get_32() - timer > kWifiConnectTimeout)
+    {
+      LOG_ERR("Wifi Connection Timedout ...");
+      return -1;
+    }
+    LOG_ERR("WiFi connect-stored request failed... retrying...");
+    k_sleep(K_MSEC(200));
   }
 
-  k_sleep(K_MSEC(500));
+  LOG_INF("Connected... Waiting for IPV4 address");
+  while (net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) == nullptr)
+  {
+    k_sleep(K_MSEC(200));
+  }
+  LOG_INF("Got IPV4 address");
+
+  // Disable Wi-Fi power saving
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  k_sleep(K_MSEC(200));
+
   static ZenbeddedClient client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, ZENOH_MODE, ZENOH_LOCATOR, kControlFreqHz);
+  int ret = client.init(STATE_TOPIC, CMD_TOPIC, kControlFreqHz);
   report(ret == 0, "client.init() returned 0");
   if (ret != 0)
   {
@@ -149,8 +89,9 @@ int main(void)
   for (int i = 0; i < kIterations; i++)
   {
     zenbedded_state_t & s = client.state();
-    s.motor_arm_position = sinf(static_cast<float>(i) * 0.1f) * 90.0f;
-    s.pendulum_axis_position = static_cast<float>(i) * 0.01f;
+    double di = static_cast<double>(i);
+    s.motor_arm_position = sin(di * 0.1) * 90.0;
+    s.pendulum_axis_position = di * 0.01;
 
     client.sync();
     sync_calls++;
@@ -167,7 +108,7 @@ int main(void)
     }
 
     // check if the value changes
-    if (cmd.motor_arm_position != 0.0f)
+    if (fabsf(cmd.motor_arm_position) >= 1e-9)
     {
       cmd_val_changed = true;
     }

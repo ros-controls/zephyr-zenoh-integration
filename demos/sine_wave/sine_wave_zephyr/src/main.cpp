@@ -14,20 +14,12 @@
 
 #include <esp_wifi.h>
 #include <zephyr/kernel.h>
-#include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
 LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
-
-#ifndef ZENOH_MODE
-#define ZENOH_MODE "client"
-#endif
-#ifndef ZENOH_LOCATOR
-#define ZENOH_LOCATOR "tcp/10.75.105.128:7447"
-#endif
 
 #define STATE_TOPIC "zenbedded/sine_wave/state"
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
@@ -61,7 +53,7 @@ int main()
 
   static ZenbeddedClient client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, ZENOH_MODE, ZENOH_LOCATOR, loop_freq);
+  int ret = client.init(STATE_TOPIC, CMD_TOPIC, loop_freq);
   if (ret != 0)
   {
     LOG_ERR("ZenbeddedClient.init failed with %d, aborting", ret);
