@@ -1,4 +1,4 @@
-
+if(CONFIG_ZENBEDDED_RCL)
 
 if(NOT DEFINED ZENBEDDED_SCHEMA_FILE)
     set(ZENBEDDED_SCHEMA_FILE interface_schema.yaml)
@@ -39,3 +39,5 @@ zephyr_library_include_directories(include)
 
 # Ensure the header exists before library compiles.
 add_dependencies(${ZEPHYR_CURRENT_LIBRARY} ${generate_interface_data})
+
+endif() #CONFIG_ZENBEDDED_RCL
