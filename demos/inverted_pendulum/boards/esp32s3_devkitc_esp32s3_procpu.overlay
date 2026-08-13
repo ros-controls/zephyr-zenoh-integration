@@ -20,28 +20,29 @@
 		invert-direction;
 		stepper-driver = <&a4988_driver>;
 	};
+// Enable this and replace the alias for drivers like DRVxxx and TMC2209 so you can control microstepping
 
-	tmc2209_driver: tmc2209-stepper-driver {
-		compatible = "adi,tmc2209";
-		en-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-		m0-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
-		m1-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
-		micro-step-res = <32>;
-	};
-
-	tmc2209_ctrl: tmc2209-stepper-controller {
-		compatible = "zephyr,gpio-step-dir-stepper-ctrl";
-		step-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
-		dir-gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
-		invert-direction;
-		stepper-driver = <&tmc2209_driver>;
-	};
+//	tmc2209_driver: tmc2209-stepper-driver {
+//		compatible = "adi,tmc2209";
+//		en-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+//		m0-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+//		m1-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+//		micro-step-res = <32>;
+//	};
+//
+//	tmc2209_ctrl: tmc2209-stepper-controller {
+//		compatible = "zephyr,gpio-step-dir-stepper-ctrl";
+//		step-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+//		dir-gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+//		invert-direction;
+//		stepper-driver = <&tmc2209_driver>;
+//	};
 };
 
 &pinctrl {
 	i2c0_default: i2c0_default {
 		group1 {
-			pinmux = <I2C0_SDA_GPIO6>, <I2C0_SCL_GPIO7>;
+			pinmux = <I2C0_SDA_GPIO9>, <I2C0_SCL_GPIO10>;
 			bias-pull-up;
 			drive-open-drain;
 			output-high;
