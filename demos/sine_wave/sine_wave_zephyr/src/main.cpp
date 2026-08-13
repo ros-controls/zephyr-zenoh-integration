@@ -14,6 +14,7 @@
 
 #include <esp_wifi.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
@@ -25,8 +26,9 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
 float wave_amp = 5;
-float wave_frequency = 1.4;  // hz
-uint32_t loop_freq = 100;    // hz
+float wave_frequency = 1.4;            // hz
+uint32_t loop_freq = 100;              // hz
+uint32_t kWifiConnectTimeout = 15000;  // ms
 
 int main()
 {
@@ -34,8 +36,14 @@ int main()
   net_if * iface = net_if_get_default();
 
   LOG_INF("connecting to WiFi using stored credentials...");
+  uint32_t timer = k_uptime_get_32();
   while (net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, nullptr, 0) != 0)
   {
+    if (k_uptime_get_32() - timer > kWifiConnectTimeout)
+    {
+      LOG_ERR("Wifi Connection Timedout ...");
+      return -1;
+    }
     LOG_ERR("WiFi connect-stored request failed... retrying...");
     k_sleep(K_MSEC(200));
   }
