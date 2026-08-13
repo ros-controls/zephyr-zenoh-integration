@@ -16,7 +16,7 @@
 
 #include <string.h>
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
 #define CDR_HEADER_SIZE 4
 #define ALIGN_UP(offset, alignment) \
@@ -259,4 +259,4 @@ bool zcdr_deserialize_joint_command(
   return true;
 }
 
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1

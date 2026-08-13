@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
 /**
  * @brief Context for JointState serialization and deserialization.
@@ -88,6 +88,6 @@ bool zcdr_deserialize_joint_command(
   const zcdr_joint_command_ctx_t * ctx, const uint8_t * in_buffer, size_t buffer_size,
   int32_t * out_stamp_sec, uint32_t * out_stamp_nanosec, double * out_values);
 
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
 #endif  // ZENBEDDED_TRANSPORT__SERIALIZATION_H_
