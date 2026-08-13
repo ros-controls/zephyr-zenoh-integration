@@ -4,6 +4,7 @@
 	aliases {
 		stepper-driver = &a4988_driver;
 		stepper-ctrl = &a4988_ctrl;
+		encoder-driver = &as5600_encoder;
 	};
 
 	a4988_driver: a4988-stepper-driver {
