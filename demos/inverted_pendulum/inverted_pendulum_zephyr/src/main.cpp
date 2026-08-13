@@ -33,6 +33,7 @@ LOG_MODULE_REGISTER(inverted_pendulum_demo, LOG_LEVEL_INF);
 constexpr uint32_t motor_steps_per_rev = 200;
 constexpr uint32_t micro_step_res = DT_PROP_OR(DT_ALIAS(stepper_driver), micro_step_res, 1);
 constexpr uint32_t micro_steps_per_rev = motor_steps_per_rev * micro_step_res;
+uint32_t kWifiConnectTimeout = 15000;  // ms
 
 const device * stepper_driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver));
 const device * stepper_ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl));
@@ -100,8 +101,14 @@ int main()
   net_if * iface = net_if_get_default();
 
   LOG_INF("connecting to WiFi using stored credentials...");
+  uint32_t timer = k_uptime_get_32();
   while (net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, nullptr, 0) != 0)
   {
+    if (k_uptime_get_32() - timer > kWifiConnectTimeout)
+    {
+      LOG_ERR("Wifi Connection Timedout ...");
+      return -1;
+    }
     LOG_ERR("WiFi connect-stored request failed... retrying...");
     k_sleep(K_MSEC(200));
   }
