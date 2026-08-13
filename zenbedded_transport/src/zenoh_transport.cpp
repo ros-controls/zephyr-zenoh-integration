@@ -291,7 +291,8 @@ int zenbedded_publish(const uint8_t * payload, size_t size)
 
 #ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
   pub_attachment.sequence_number++;
-  pub_attachment.time = z_clock_now().tv_nsec;
+  z_clock_t now = z_clock_now();
+  pub_attachment.time = now.tv_sec * 1000000000LL + now.tv_nsec;
 
   z_owned_bytes_t z_attachment;
   z_bytes_from_static_buf(
