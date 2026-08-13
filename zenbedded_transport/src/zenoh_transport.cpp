@@ -126,7 +126,7 @@ static void zenoh_sub_handler(z_loaned_sample_t * sample, void * ctx)
     return;
   }
 
-  size_t len = _z_bytes_len(z_sample_payload(sample));
+  size_t len = z_bytes_len(z_sample_payload(sample));
   if (len == 0 || len > CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE)
   {
     LOG_WRN(
@@ -135,11 +135,11 @@ static void zenoh_sub_handler(z_loaned_sample_t * sample, void * ctx)
     return;
   }
 
-  static uint8_t stack_buf[CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE];
+  static uint8_t cmd_rx_buf[CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE];
   z_bytes_reader_t reader = z_bytes_get_reader(z_sample_payload(sample));
-  z_bytes_reader_read(&reader, stack_buf, len);
+  z_bytes_reader_read(&reader, cmd_rx_buf, len);
 
-  sub_cb(stack_buf, len, sub_user_data);
+  sub_cb(cmd_rx_buf, len, sub_user_data);
 }
 
 #ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
@@ -157,6 +157,7 @@ static int configure_zenoh_tier1()
       z_session_loan(&s_session), &node_lv_token, z_view_keyexpr_loan(&ke), nullptr) != Z_OK)
   {
     LOG_ERR("Failed to declare node liveliness token");
+    return -1;
   }
 
   // Declare Publisher with rmw attachment
@@ -237,7 +238,7 @@ static int configure_zenoh_tier2()
 }
 #endif
 
-void zenbedded_set_subcriber_cb(zenbedded_sub_cb_t cb, void * user_data)
+void zenbedded_set_subscriber_cb(zenbedded_sub_cb_t cb, void * user_data)
 {
   sub_cb = cb;
   sub_user_data = user_data;
