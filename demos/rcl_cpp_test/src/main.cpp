@@ -25,8 +25,8 @@ LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
 #define CMD_TOPIC "zenbedded/test/cmd"
 
 constexpr uint32_t kControlFreqHz = 50;
-constexpr int kIterations = 200;  // ~4s at 50Hz
-constexpr int kWifiConnectTimeout = 15;
+constexpr int kIterations = 200;            // ~4s at 50Hz
+constexpr int kWifiConnectTimeout = 15000;  // ms
 
 static void report(bool pass, const char * msg)
 {
