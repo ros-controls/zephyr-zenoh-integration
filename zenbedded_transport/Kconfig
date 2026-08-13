@@ -1,19 +1,48 @@
 menu "Zephyr Zenoh Integration Configuration"
 
-config ZENOH_TRANSPORT_DOMAIN_ID
-    int "ROS 2 Domain ID"
-    default 0
+    config ZENBEDDED_ROS2_DOMAIN_ID
+        int "ROS 2 Domain ID"
+        default 0
 
-choice ZENOH_TRANSPORT_TIER
-    prompt "Integration Tier"
-    default TIER_1
+    config ZENBEDDED_ROS2_NODE_NAME
+        string "The ros2 node name assigned to the MCU if TIER_1 is enabled"
+        default "zenbedded_mcu"
 
-config TIER_1
-    bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
-config TIER_2
-    bool "Tier 2: High-Throughput Raw Numeric"
-config TIER_3
-    bool "Tier 3: Bit-Optimal Packed"
+    config ZENBEDDED_ZENOH_MODE
+        string "The mode for zenoh-pico peer/client"
+        default "client"
 
-endchoice
+    config ZENBEDDED_ZENOH_LOCATOR
+        string "The locator/address to connect to for zenoh-pico"
+        default ""
+
+    config ZENBEDDED_PUB_TOPIC
+        string "Name of the topic for publishing"
+        default "zenbedded/state"
+
+    config ZENBEDDED_SUB_TOPIC
+        string "name of the topic for subscribing"
+        default "zenbedded/cmd"
+
+    choice ZENBEDDED_TRANSPORT_TIER
+        prompt "Integration Tier"
+        default ZENBEDDED_TRANSPORT_TIER_1
+
+        config ZENBEDDED_TRANSPORT_TIER_1
+            bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
+        config ZENBEDDED_TRANSPORT_TIER_2
+            bool "Tier 2: High-Throughput Raw Numeric"
+        config ZENBEDDED_TRANSPORT_TIER_3
+            bool "Tier 3: Bit-Optimal Packed"
+
+    endchoice
+
+    config ZENBEDDED_MAX_STATE_BUFFER_SIZE
+        int "Maximum size of state message (for static allocation)"
+        default 256
+
+    config ZENBEDDED_MAX_CMD_BUFFER_SIZE
+        int "Maximum size of cmd message (for static allocation)"
+        default 256
+
 endmenu
