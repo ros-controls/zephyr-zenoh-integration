@@ -16,7 +16,7 @@
 
 #include <string.h>
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
 #define ALIGN_UP(offset, alignment) (((offset) + (alignment) - 1) & ~((alignment) - 1))
 
@@ -257,4 +257,4 @@ bool zcdr_deserialize_joint_command(
   return true;
 }
 
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1
