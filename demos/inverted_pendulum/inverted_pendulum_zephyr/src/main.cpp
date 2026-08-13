@@ -25,10 +25,10 @@
 #include <cmath>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
-LOG_MODULE_REGISTER(inverted_pendulum, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(inverted_pendulum_demo, LOG_LEVEL_INF);
 
-#define STATE_TOPIC "zenbedded/sine_wave/state"
-#define CMD_TOPIC "zenbedded/sine_wave/cmd"
+#define STATE_TOPIC "zenbedded/inverted_pendulum/state"
+#define CMD_TOPIC "zenbedded/inverted_pendulum/cmd"
 
 constexpr uint32_t motor_steps_per_rev = 200;
 constexpr uint32_t micro_step_res = DT_PROP_OR(DT_ALIAS(stepper_driver), micro_step_res, 1);
@@ -43,6 +43,7 @@ void set_stepper_angular_vel(double deg_per_sec)
   if (deg_per_sec == 0.0)
   {
     stepper_ctrl_stop(stepper_ctrl);
+    return;
   }
 
   double microsteps_per_sec = fabs(deg_per_sec) * micro_steps_per_rev / 360.0;
@@ -50,6 +51,7 @@ void set_stepper_angular_vel(double deg_per_sec)
   if (microsteps_per_sec <= 0.0)
   {
     stepper_ctrl_stop(stepper_ctrl);
+    return;
   }
 
   auto interval_ns = static_cast<uint64_t>(1e9 / microsteps_per_sec);
