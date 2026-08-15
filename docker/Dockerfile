@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     cmake ninja-build gperf build-essential \
     ccache dfu-util device-tree-compiler wget \
     python3-dev python3-tk python3-wheel xz-utils file \
-    make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 git \
+    make gcc libsdl2-dev libmagic1 git \
     ros-jazzy-ros2-control \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
@@ -32,9 +32,11 @@ RUN west init -l manifest-repo && west update && west zephyr-export
 RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
 
 # Install Zephyr SDK(MINIMAL)
-RUN wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
-    && tar xf zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
-    && rm zephyr-sdk-0.16.8_linux-x86_64_minimal.tar.xz \
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ]; then SDK_ARCH="aarch64"; else SDK_ARCH="x86_64"; fi && \
+    wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
+    && tar xf zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
+    && rm zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
     && cd zephyr-sdk-0.16.8 \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
