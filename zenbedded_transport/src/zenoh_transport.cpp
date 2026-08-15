@@ -14,12 +14,12 @@
 
 #include "zenbedded_transport/zenoh_transport.h"
 #include <zenoh-pico.h>
-#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 LOG_MODULE_REGISTER(zenbedded_transport, LOG_LEVEL_INF);
 
@@ -48,10 +48,6 @@ static rmw_attachment_t pub_attachment;
 
 static zenbedded_sub_cb_t sub_cb = nullptr;  // callback provided by client for incoming commands
 static void * sub_user_data = nullptr;       // optional context info for callback
-
-static k_spinlock time_syncing_lock;
-static int64_t epoch_offset_ns = 0;  // time offset between mcu time and ros2 host pc time
-static bool time_synced = false;
 
 static zenbedded_topic_info_t pub_topic = {
   .name = CONFIG_ZENBEDDED_PUB_TOPIC,
@@ -124,55 +120,6 @@ static int generate_entity_liveliness_keyexpr(
     entity_str, node_name, mangled_topic, topic->type, topic->rihs_hash);
 }
 
-#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
-static void sync_mcu_time_from_ros2_payload(const uint8_t * payload, size_t len)
-{
-  // Need at least 12 bytes: 4 (CDR Header) + 4 (sec) + 4 (nanosec)
-  if (len < 12)
-  {
-    LOG_ERR("The Command payload is too small to be a ros2 message (Got %zu bytes)", len);
-    return;
-  }
-
-  int32_t sec = 0;
-  uint32_t nsec = 0;
-
-  if (payload[1] == 0x01)
-  {
-    sec = static_cast<int32_t>(sys_get_le32(&payload[4]));
-    nsec = sys_get_le32(&payload[8]);
-  }
-  else
-  {
-    sec = static_cast<int32_t>(sys_get_be32(&payload[4]));
-    nsec = sys_get_be32(&payload[8]);
-  }
-
-  // Ensure sec is a valid Unix timestamp (> 1.7 Billion seconds / post-2024)
-  // and nanoseconds is within range (< 1 billion).
-  if (sec > 1700000000 && nsec < 1000000000U)
-  {
-    uint64_t host_time_ns = (static_cast<uint64_t>(sec) * 1000000000ULL) + nsec;
-    uint64_t mcu_uptime_ns = k_ticks_to_ns_floor64(k_uptime_ticks());
-    int64_t new_offset = static_cast<int64_t>(host_time_ns) - static_cast<int64_t>(mcu_uptime_ns);
-
-    k_spinlock_key_t key = k_spin_lock(&time_syncing_lock);
-    if (!time_synced)
-    {
-      epoch_offset_ns = new_offset;
-      time_synced = true;
-      LOG_INF("Auto-synced MCU time from incoming ROS 2 CDR Header!");
-    }
-    else
-    {
-      // Smooth out network jitter with an Exponential Moving Average (EMA)
-      epoch_offset_ns = (epoch_offset_ns * 19 + new_offset) / 20;
-    }
-    k_spin_unlock(&time_syncing_lock, key);
-  }
-}
-#endif
-
 // Internal Subscriber Callback handler
 static void zenoh_sub_handler(z_loaned_sample_t * sample, void * ctx)
 {
@@ -193,10 +140,6 @@ static void zenoh_sub_handler(z_loaned_sample_t * sample, void * ctx)
   static uint8_t cmd_rx_buf[CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE];
   z_bytes_reader_t reader = z_bytes_get_reader(z_sample_payload(sample));
   z_bytes_reader_read(&reader, cmd_rx_buf, len);
-
-#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
-  sync_mcu_time_from_ros2_payload(cmd_rx_buf, len);
-#endif
 
   sub_cb(cmd_rx_buf, len, sub_user_data);
 }
@@ -351,15 +294,9 @@ int zenbedded_publish(const uint8_t * payload, size_t size)
 
 #ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
   pub_attachment.sequence_number++;
-  k_spinlock_key_t key = k_spin_lock(&time_syncing_lock);
-  int64_t offset = epoch_offset_ns;
-  bool synced = time_synced;
-  k_spin_unlock(&time_syncing_lock, key);
-
-  uint64_t mcu_uptime_ns = k_ticks_to_ns_floor64(k_uptime_ticks());
-  pub_attachment.time =
-    synced ? static_cast<int64_t>(mcu_uptime_ns) + offset
-           : static_cast<int64_t>(mcu_uptime_ns);  // not real epoch time until synced
+  timespec tv;
+  clock_gettime(CLOCK_REALTIME, &tv);
+  pub_attachment.time = tv.tv_nsec;
 
   z_owned_bytes_t z_attachment;
   z_bytes_from_static_buf(
