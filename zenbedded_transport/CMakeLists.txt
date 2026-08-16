@@ -7,4 +7,4 @@ zephyr_library_sources(
   src/serialization.cpp
 )
 
-zephyr_library_include_directories(include)
+target_include_directories(zenbedded_transport PUBLIC include)
