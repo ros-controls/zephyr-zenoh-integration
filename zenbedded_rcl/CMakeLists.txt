@@ -33,8 +33,8 @@ zephyr_library_sources(
         src/hardware_component.cpp
         src/zenbedded_client.cpp
 )
-zephyr_library_include_directories(include)
-zephyr_library_link_libraries(zenbedded_transport)
+target_include_directories(zenbedded_rcl PUBLIC include)
+target_link_libraries(zenbedded_rcl PUBLIC zenbedded_transport)
 
 # Ensure the header exists before library compiles.
-add_dependencies(${ZEPHYR_CURRENT_LIBRARY} ${generate_interface_data})
+add_dependencies(zenbedded_rcl ${generate_interface_data})
