@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "zenbedded_transport/serialization.h"
+#include "zenbedded_transport/serialization.hpp"
 
-#include <string.h>
+#include <cstring>
 
 #ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
