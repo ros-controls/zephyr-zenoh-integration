@@ -28,10 +28,11 @@ RUN cd manifest-repo && git init -q && git add . \
     && git -c user.email=ci@local -c user.name=ci commit -qm "image manifest"
 RUN west init -l manifest-repo && west update && west zephyr-export
 
-# Install python dependencies
+# Copy python requirements from zephyr and install
+RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
+
 RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
-    pip3 install --ignore-installed --break-system-packages -r /tmp/requirements.txt && \
-    pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
+    pip3 install --ignore-installed --break-system-packages -r /tmp/requirements.txt
 
 # Install Zephyr SDK(MINIMAL)
 RUN ARCH=$(uname -m) && \
