@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     cmake ninja-build gperf build-essential \
     ccache dfu-util device-tree-compiler wget \
     python3-dev python3-tk python3-wheel xz-utils file \
-    make gcc libsdl2-dev libmagic1 git \
+    make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 git \
     ros-jazzy-ros2-control \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
@@ -17,8 +17,9 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-rosidl-generator-cpp \
     && rm -rf /var/lib/apt/lists/*
 
-# Install West
-RUN pip3 install --break-system-packages west
+# Install Python workspace dependencies
+RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
+    pip3 install --ignore-installed --break-system-packages -r /tmp/requirements.txt
 
 # Set up Zephyr workspace with zenoh-pico preloaded
 WORKDIR /zephyr_ws
