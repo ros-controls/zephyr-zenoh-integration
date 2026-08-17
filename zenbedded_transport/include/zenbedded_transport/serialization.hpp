@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ZENBEDDED_TRANSPORT__SERIALIZATION_H_
-#define ZENBEDDED_TRANSPORT__SERIALIZATION_H_
+#ifndef ZENBEDDED_TRANSPORT__SERIALIZATION_HPP_
+#define ZENBEDDED_TRANSPORT__SERIALIZATION_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -90,4 +90,4 @@ bool zcdr_deserialize_joint_command(
 
 #endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
-#endif  // ZENBEDDED_TRANSPORT__SERIALIZATION_H_
+#endif  // ZENBEDDED_TRANSPORT__SERIALIZATION_HPP_
