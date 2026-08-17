@@ -1,3 +1,5 @@
+if(DEFINED CONFIG_ZENBEDDED_RCL)
+
 if(NOT DEFINED ZENBEDDED_SCHEMA_FILE)
     set(ZENBEDDED_SCHEMA_FILE interface_schema.yaml)
 endif()
@@ -38,3 +40,5 @@ target_link_libraries(zenbedded_rcl PUBLIC zenbedded_transport)
 
 # Ensure the header exists before library compiles.
 add_dependencies(zenbedded_rcl ${generate_interface_data})
+
+endif() # CONFIG_ZENBEDDED_RCL

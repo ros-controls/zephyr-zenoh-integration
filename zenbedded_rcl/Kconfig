@@ -1,6 +1,6 @@
 menu "Zenbedded RCL Configuration"
 
-    config ZENBEDDED_RCL_ENABLE
+    config ZENBEDDED_RCL
         bool "Enable Zenbedded RCL"
         default y
         help
