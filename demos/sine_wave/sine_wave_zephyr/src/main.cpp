@@ -25,8 +25,8 @@ LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 #define STATE_TOPIC "zenbedded/sine_wave/state"
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
-float wave_amp = 5;
-float wave_frequency = 1.4;            // hz
+double wave_amp = 5;
+double wave_frequency = 1.4;           // hz
 uint32_t loop_freq = 100;              // hz
 uint32_t kWifiConnectTimeout = 15000;  // ms
 
@@ -76,18 +76,18 @@ int main()
     const zenbedded_command_t & cmd = client.command();
     zenbedded_state_t & state = client.state();
 
-    if (fabsf(cmd.sine_wave_amplitude) >= 1e-6f)
+    if (fabs(cmd.sine_wave_amplitude) >= 1e-6)
     {
       cmd_recv = true;
     }
     if (cmd_recv)
     {
-      wave_amp = fabsf(cmd.sine_wave_amplitude);
+      wave_amp = fabs(cmd.sine_wave_amplitude);
     }
 
     auto current_time_ms = static_cast<double>(k_uptime_get() - start_time);
-    double x = 2.0 * M_PI * current_time_ms * static_cast<double>(wave_frequency) / 1000.0;
-    state.sine_wave_position = static_cast<float>(static_cast<double>(wave_amp) * sin(x));
+    double x = 2.0 * M_PI * current_time_ms * wave_frequency / 1000.0;
+    state.sine_wave_position = wave_amp * sin(x);
 
     if (++cnt == 500)
     {

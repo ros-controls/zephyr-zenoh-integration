@@ -1,6 +1,6 @@
 state_interfaces:
   sine_wave:
-    position: float32
+    position: float64
 command_interfaces:
   sine_wave:
-    amplitude: float32
+    amplitude: float64

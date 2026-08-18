@@ -104,12 +104,11 @@ int main(void)
       LOG_INF(
         "iter=%d state.motor_arm=%.2f "
         "state.pendulum=%.2f cmd.motor_arm=%.2f",
-        i, static_cast<double>(s.motor_arm_position), static_cast<double>(s.pendulum_axis_position),
-        static_cast<double>(cmd.motor_arm_position));
+        i, s.motor_arm_position, s.pendulum_axis_position, cmd.motor_arm_position);
     }
 
     // check if the value changes
-    if (fabsf(cmd.motor_arm_position) >= 1e-9f)
+    if (fabs(cmd.motor_arm_position) >= 1e-9)
     {
       cmd_val_changed = true;
     }
