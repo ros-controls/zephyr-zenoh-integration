@@ -208,7 +208,7 @@ TEST_F(TestZenbeddedHardware, write_publishes_command_via_zenoh)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    if (received.size() == 4)
+    if (received.size() == sizeof(zenbedded_command_t))
     {
       published = true;
       break;
@@ -219,7 +219,7 @@ TEST_F(TestZenbeddedHardware, write_publishes_command_via_zenoh)
   ASSERT_EQ(received.size(), sizeof(zenbedded_command_t));
   zenbedded_command_t cmd;
   std::memcpy(&cmd, received.data(), sizeof(zenbedded_command_t));
-  EXPECT_FLOAT_EQ(cmd.motor_arm_position, 1.5f);
+  EXPECT_DOUBLE_EQ(cmd.motor_arm_position, 1.5);
 
   EXPECT_EQ(hw_->on_deactivate(state), CallbackReturn::SUCCESS);
 }
