@@ -2,6 +2,8 @@ FROM ros:jazzy-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG ZEPHYR_SDK_VERSION=1.0.1
+
 # Install system dependencies for both Zephyr and ROS 2
 RUN apt-get update && apt-get install -y \
     python3-pip python3-venv python3-setuptools \
@@ -10,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     ccache dfu-util device-tree-compiler wget \
     python3-dev python3-tk python3-wheel xz-utils file \
     make gcc libsdl2-dev libmagic1 git \
+    libudev-dev libusb-1.0-0-dev pkg-config \
     ros-jazzy-ros2-control \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
@@ -28,19 +31,18 @@ RUN cd manifest-repo && git init -q && git add . \
     && git -c user.email=ci@local -c user.name=ci commit -qm "image manifest"
 RUN west init -l manifest-repo && west update && west zephyr-export
 
-# Copy python requirements from zephyr and install
-RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
-
 # Install Zephyr SDK(MINIMAL)
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ]; then SDK_ARCH="aarch64"; else SDK_ARCH="x86_64"; fi && \
-    wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
-    && tar xf zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
-    && rm zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
-    && cd zephyr-sdk-0.16.8 \
+    wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-${SDK_ARCH}_minimal.tar.xz \
+    && tar xf zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-${SDK_ARCH}_minimal.tar.xz \
+    && rm zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-${SDK_ARCH}_minimal.tar.xz \
+    && cd zephyr-sdk-${ZEPHYR_SDK_VERSION} \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
-RUN cd /zephyr_ws && west blobs fetch hal_espressif
+# Install all python dependencies for all subpackages
+RUN west packages pip --install --ignore-venv-check -- --break-system-packages --ignore-installed
+RUN west blobs fetch hal_espressif
 
 # apply patch containing macro redefinition warnings fix
 WORKDIR /zephyr_ws/modules/lib/zenoh-pico
@@ -49,7 +51,7 @@ RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
-ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-0.16.8
+ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-${ZEPHYR_SDK_VERSION}
 ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Set up ROS 2 workspace structure
