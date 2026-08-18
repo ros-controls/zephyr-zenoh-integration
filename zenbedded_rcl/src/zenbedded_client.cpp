@@ -15,6 +15,7 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenoh-pico.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
@@ -39,9 +40,7 @@ void ZenbeddedClient::reset_buffers()
   memset(&user_command_buffer_, 0, sizeof(user_command_buffer_));
 }
 
-int ZenbeddedClient::init(
-  const char * state_topic, const char * cmd_topic, const char * zenoh_mode,
-  const char * zenoh_locator, uint32_t control_freq)
+int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint32_t control_freq)
 {
   if (initialized_)
   {
@@ -54,11 +53,6 @@ int ZenbeddedClient::init(
     LOG_ERR("State and command topics cannot be NULL");
     return -EINVAL;
   }
-  if (!zenoh_mode || !zenoh_locator)
-  {
-    LOG_ERR("Zenoh params cannot be NULL");
-    return -EINVAL;
-  }
 
   state_topic_ = state_topic;
   cmd_topic_ = cmd_topic;
@@ -68,14 +62,15 @@ int ZenbeddedClient::init(
   // Zenoh Config
   z_owned_config_t config;
   z_config_default(&config);
-  zp_config_insert(z_config_loan_mut(&config), Z_CONFIG_MODE_KEY, zenoh_mode);
+  zp_config_insert(z_config_loan_mut(&config), Z_CONFIG_MODE_KEY, CONFIG_ZENBEDDED_RCL_ZENOH_MODE);
 
-  if (strcmp(zenoh_locator, "") != 0)
+  if (strcmp(CONFIG_ZENBEDDED_RCL_ZENOH_LOCATOR, "") != 0)
   {
     zp_config_insert(
       z_loan_mut(config),
-      (strcmp(zenoh_mode, "client") == 0) ? Z_CONFIG_CONNECT_KEY : Z_CONFIG_LISTEN_KEY,
-      zenoh_locator);
+      (strcmp(CONFIG_ZENBEDDED_RCL_ZENOH_MODE, "client") == 0) ? Z_CONFIG_CONNECT_KEY
+                                                               : Z_CONFIG_LISTEN_KEY,
+      CONFIG_ZENBEDDED_RCL_ZENOH_LOCATOR);
   }
 
   z_result_t ret = z_open(&z_session_, z_move(config), nullptr);

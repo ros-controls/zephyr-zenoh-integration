@@ -36,8 +36,8 @@ built with (-DZENOH_LOCATOR):
 
 Payload layout must match interface_data.h exactly (packed, little-endian,
 IEEE-754 floats):
-    zenbedded_state_t   = struct.pack("<ff", motor_arm_position, pendulum_axis_position)
-    zenbedded_command_t = struct.pack("<f",  motor_arm_position)
+    zenbedded_state_t   = struct.pack("<dd", motor_arm_position, pendulum_axis_position)
+    zenbedded_command_t = struct.pack("<d",  motor_arm_position)
 """
 
 import argparse
@@ -47,8 +47,8 @@ import time
 
 import zenoh
 
-STATE_FMT = "<ff"  # motor_arm_position, pendulum_axis_position
-CMD_FMT = "<f"  # motor_arm_position
+STATE_FMT = "<dd"  # motor_arm_position, pendulum_axis_position
+CMD_FMT = "<d"  # motor_arm_position
 
 
 def main() -> None:
