@@ -102,12 +102,12 @@ static rmw_attachment_t pub_attachment;
 
 static zenbedded_ros2_topic_info_t pub_topic = {
   .name = CONFIG_ZENBEDDED_PUB_TOPIC,
-  .type = ZENBEDDED_CMD_MSG_TYPE_NAME,
-  .rihs_hash = ZENBEDDED_CMD_MSG_TYPE_HASH};
-static zenbedded_ros2_topic_info_t sub_topic = {
-  .name = CONFIG_ZENBEDDED_SUB_TOPIC,
   .type = ZENBEDDED_STATE_MSG_TYPE_NAME,
   .rihs_hash = ZENBEDDED_STATE_MSG_TYPE_HASH};
+static zenbedded_ros2_topic_info_t sub_topic = {
+  .name = CONFIG_ZENBEDDED_SUB_TOPIC,
+  .type = ZENBEDDED_CMD_MSG_TYPE_NAME,
+  .rihs_hash = ZENBEDDED_CMD_MSG_TYPE_HASH};
 
 #endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
@@ -150,7 +150,7 @@ static int generate_topic_keyexpr(
   uint32_t domain_id, const zenbedded_ros2_topic_info_t * topic, char * keyexpr)
 {
   return snprintf(
-    keyexpr, KEYEXPR_SIZE, "%" PRIu32 "/%s/%s_/RIHS01_%s", domain_id, topic->name, topic->type,
+    keyexpr, KEYEXPR_SIZE, "%" PRIu32 "/%s/%s_/%s", domain_id, topic->name, topic->type,
     topic->rihs_hash);
 }
 
@@ -194,7 +194,7 @@ static int generate_entity_liveliness_keyexpr(
     "@ros2_lv/%" PRIu32
     "/"
     "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/"
-    "0/10/%s/%%/%%/%s/%%%s/%s_/RIHS01_%s/::,7:,:,:,,",
+    "0/10/%s/%%/%%/%s/%%%s/%s_/%s/::,7:,:,:,,",
     domain_id, id.id[0], id.id[1], id.id[2], id.id[3], id.id[4], id.id[5], id.id[6], id.id[7],
     id.id[8], id.id[9], id.id[10], id.id[11], id.id[12], id.id[13], id.id[14], id.id[15],
     entity_str, node_name, mangled_topic, topic->type, topic->rihs_hash);
