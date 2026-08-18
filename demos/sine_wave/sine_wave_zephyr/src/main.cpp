@@ -76,7 +76,7 @@ int main()
     const zenbedded_command_t & cmd = client.command();
     zenbedded_state_t & state = client.state();
 
-    if (fabsf(cmd.sine_wave_amplitude) >= 1e-6)
+    if (fabsf(cmd.sine_wave_amplitude) >= 1e-6f)
     {
       cmd_recv = true;
     }
@@ -86,8 +86,8 @@ int main()
     }
 
     auto current_time_ms = static_cast<double>(k_uptime_get() - start_time);
-    double x = 2.0 * M_PI * current_time_ms * wave_frequency / 1000.0;
-    state.sine_wave_position = wave_amp * sin(x);
+    double x = 2.0 * M_PI * current_time_ms * static_cast<double>(wave_frequency) / 1000.0;
+    state.sine_wave_position = static_cast<float>(static_cast<double>(wave_amp) * sin(x));
 
     if (++cnt == 500)
     {
