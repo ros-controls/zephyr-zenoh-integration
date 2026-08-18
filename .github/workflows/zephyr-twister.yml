@@ -65,7 +65,7 @@ jobs:
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
-            --platform native_sim \
+            --platform native_sim/native/64 \
             --platform esp32s3_devkitc/esp32s3/procpu \
             --inline-logs \
             -v \
