@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     cmake ninja-build gperf build-essential \
     ccache dfu-util device-tree-compiler wget \
     python3-dev python3-tk python3-wheel xz-utils file \
-    make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 git \
+    make gcc libsdl2-dev libmagic1 git \
     ros-jazzy-ros2-control \
     ros-jazzy-ros2-controllers \
     ros-jazzy-rmw-zenoh-cpp \
