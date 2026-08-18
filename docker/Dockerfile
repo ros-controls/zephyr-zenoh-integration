@@ -41,7 +41,7 @@ RUN ARCH=$(uname -m) && \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
 # Install all python dependencies for all subpackages
-RUN west packages pip --install --ignore-venv-check -- --break-system-packages
+RUN west packages pip --install --ignore-venv-check -- --break-system-packages --ignore-installed
 RUN west blobs fetch hal_espressif
 
 # apply patch containing macro redefinition warnings fix
