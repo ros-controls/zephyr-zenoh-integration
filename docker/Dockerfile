@@ -50,6 +50,10 @@ WORKDIR /zephyr_ws/modules/lib/zenoh-pico
 COPY docker/wrap_zenoh_config.patch .
 RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
 
+# apply patch fixing socklen_t argument types, which only mismatch on 64-bit hosts
+COPY docker/fix_socklen_types.patch .
+RUN git apply fix_socklen_types.patch && rm fix_socklen_types.patch
+
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
 ENV ZEPHYR_SDK_INSTALL_DIR=/zephyr_ws/zephyr-sdk-0.16.8
