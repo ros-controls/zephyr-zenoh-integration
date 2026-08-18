@@ -74,6 +74,16 @@ jobs:
             -v \
             --outdir twister-out
 
+      - name: Show merged Kconfig for native_sim builds
+        if: always()
+        shell: bash
+        run: |
+          find twister-out -path "*native_sim*" -name .config | while read -r cfg; do
+            echo "::group::$cfg"
+            grep -E "OFFLOAD|ETH_NATIVE|NET_TCP|NET_IPV4|NET_DRIVERS|NET_NATIVE|NET_SOCKETS" "$cfg" || true
+            echo "::endgroup::"
+          done
+
       - name: Show twister run output
         if: always()
         shell: bash
@@ -86,3 +96,15 @@ jobs:
             cat "$log"
             echo "::endgroup::"
           done
+
+      - name: Upload twister logs and configs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twister-out
+          path: |
+            twister-out/**/*.log
+            twister-out/**/.config
+            twister-out/twister.json
+          retention-days: 7
+          if-no-files-found: warn
