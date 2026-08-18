@@ -30,7 +30,9 @@ RUN cd manifest-repo && git init -q && git add . \
 RUN west init -l manifest-repo && west update && west zephyr-export
 
 # Copy python requirements from zephyr and install
-RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
+RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
+    PIP_CONSTRAINT=/tmp/requirements.txt \
+    pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
 
 # Install Zephyr SDK(MINIMAL)
 RUN ARCH=$(uname -m) && \
