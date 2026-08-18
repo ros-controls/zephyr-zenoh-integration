@@ -49,14 +49,17 @@ jobs:
           rosdep install --from-paths src --ignore-src -r -y
           colcon build
 
-      - name: Apply wrap_zenoh_config.patch
+      - name: Apply zenoh-pico patches
         shell: bash
         run: |
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
-          cp docker/wrap_zenoh_config.patch "$PICO_PATH/wrap_zenoh_config.patch"
-          cd $PICO_PATH
-          git apply wrap_zenoh_config.patch 2>/dev/null || true
-          rm wrap_zenoh_config.patch
+          for patch in wrap_zenoh_config fix_socklen_types; do
+            cp "docker/$patch.patch" "$PICO_PATH/$patch.patch"
+            cd "$PICO_PATH"
+            git apply "$patch.patch" 2>/dev/null || true
+            rm "$patch.patch"
+            cd "$GITHUB_WORKSPACE"
+          done
 
       - name: Run twister (build + run native_sim)
         shell: bash
