@@ -31,9 +31,6 @@ RUN west init -l manifest-repo && west update && west zephyr-export
 # Copy python requirements from zephyr and install
 RUN pip3 install --ignore-installed --break-system-packages -r /zephyr_ws/zephyr/scripts/requirements.txt
 
-RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
-    pip3 install --ignore-installed --break-system-packages -r /tmp/requirements.txt
-
 # Install Zephyr SDK(MINIMAL)
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ]; then SDK_ARCH="aarch64"; else SDK_ARCH="x86_64"; fi && \
@@ -41,7 +38,7 @@ RUN ARCH=$(uname -m) && \
     && tar xf zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
     && rm zephyr-sdk-0.16.8_linux-${SDK_ARCH}_minimal.tar.xz \
     && cd zephyr-sdk-0.16.8 \
-    && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -t x86_64-zephyr-elf -c -h
+    && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
 RUN cd /zephyr_ws && west blobs fetch hal_espressif
 
