@@ -36,11 +36,15 @@ def test_host_message_is_printed(zenoh_router, dut: DeviceAdapter):
 
         publisher = session.declare_publisher("zenbedded/e2e/test")
 
-        # declare_publisher returns before the router has necessarily propagated the
-        # firmware's subscription, so a single put can be dropped with no retry.
-        for _ in range(5):
-            publisher.put(message)
-            time.sleep(0.2)
+        # declare_publisher returns before the router has propagated the firmware's
+        # subscription, so publishing immediately can drop the sample. MatchingStatus
+        # defines no __bool__, so .matching must be read explicitly to get a real answer.
+        deadline = time.monotonic() + 10
+        while not publisher.matching_status.matching:
+            assert time.monotonic() < deadline, "no matching subscriber within 10s"
+            time.sleep(0.05)
+
+        publisher.put(message)
 
         lines = dut.readlines_until(regex=r"Received test message:", timeout=10)
         assert any(f"Received test message: {message}" in line for line in lines)
