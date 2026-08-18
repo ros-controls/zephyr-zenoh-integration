@@ -81,6 +81,8 @@ int main(void)
     z_declare_subscriber(z_loan(session), &subscriber, z_loan(keyexpr), z_move(callback), NULL) < 0)
   {
     printf("Zenoh subscriber declaration failed\n");
+    zp_stop_lease_task(z_loan_mut(session));
+    zp_stop_read_task(z_loan_mut(session));
     z_close(z_loan_mut(session), NULL);
     return 1;
   }

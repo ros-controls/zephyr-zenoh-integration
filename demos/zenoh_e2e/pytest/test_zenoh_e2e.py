@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import time
 
 import zenoh
 from twister_harness import DeviceAdapter
@@ -34,7 +35,12 @@ def test_host_message_is_printed(zenoh_router, dut: DeviceAdapter):
         assert any("Zenoh client connected" in line for line in lines)
 
         publisher = session.declare_publisher("zenbedded/e2e/test")
-        publisher.put(message)
+
+        # declare_publisher returns before the router has necessarily propagated the
+        # firmware's subscription, so a single put can be dropped with no retry.
+        for _ in range(5):
+            publisher.put(message)
+            time.sleep(0.2)
 
         lines = dut.readlines_until(regex=r"Received test message:", timeout=10)
         assert any(f"Received test message: {message}" in line for line in lines)
