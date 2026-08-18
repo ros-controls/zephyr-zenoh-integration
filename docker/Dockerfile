@@ -20,8 +20,9 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-rosidl-generator-cpp \
     && rm -rf /var/lib/apt/lists/*
 
-# Install West
-RUN pip3 install --break-system-packages west
+# Install Python workspace dependencies
+RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
+    pip3 install --ignore-installed --break-system-packages -r /tmp/requirements.txt
 
 # Set up Zephyr workspace with zenoh-pico preloaded
 WORKDIR /zephyr_ws
@@ -41,13 +42,19 @@ RUN ARCH=$(uname -m) && \
     && ./setup.sh -t xtensa-espressif_esp32_zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi -c -h
 
 # Install all python dependencies for all subpackages
-RUN west packages pip --install --ignore-venv-check -- --break-system-packages --ignore-installed
+RUN --mount=type=bind,source=docker/requirements.txt,target=/tmp/requirements.txt \
+    PIP_CONSTRAINT=/tmp/requirements.txt \
+    west packages pip --install --ignore-venv-check -- --break-system-packages --ignore-installed
 RUN west blobs fetch hal_espressif
 
 # apply patch containing macro redefinition warnings fix
 WORKDIR /zephyr_ws/modules/lib/zenoh-pico
 COPY docker/wrap_zenoh_config.patch .
 RUN git apply wrap_zenoh_config.patch && rm wrap_zenoh_config.patch
+
+# apply patch fixing socklen_t argument types, which only mismatch on 64-bit hosts
+COPY docker/fix_socklen_types.patch .
+RUN git apply fix_socklen_types.patch && rm fix_socklen_types.patch
 
 # Set environment variables
 ENV ZEPHYR_BASE=/zephyr_ws/zephyr
