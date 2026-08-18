@@ -109,7 +109,7 @@ int main(void)
     }
 
     // check if the value changes
-    if (fabsf(cmd.motor_arm_position) >= 1e-9)
+    if (fabsf(cmd.motor_arm_position) >= 1e-9f)
     {
       cmd_val_changed = true;
     }
