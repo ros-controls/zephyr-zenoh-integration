@@ -13,6 +13,7 @@ services:
       # --- Zephyr RTOS Workspace (MCU Side) ---
       - ./zenbedded_transport:/zephyr_ws/zenbedded_transport
       - ./zenbedded_rcl:/zephyr_ws/zenbedded_rcl
+      - ./zenbedded_schema:/zephyr_ws/zenbedded_schema
       - ./demos:/zephyr_ws/demos
 
     stdin_open: true
