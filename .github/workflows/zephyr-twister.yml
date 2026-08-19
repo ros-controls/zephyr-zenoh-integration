@@ -53,12 +53,12 @@ jobs:
         shell: bash
         run: |
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
-          for patch in wrap_zenoh_config fix_socklen_types; do
-            cp "docker/$patch.patch" "$PICO_PATH/$patch.patch"
-            cd "$PICO_PATH"
-            git apply "$patch.patch" 2>/dev/null || true
-            rm "$patch.patch"
-            cd "$GITHUB_WORKSPACE"
+          for patch in docker/*.patch; do
+            if git -C "$PICO_PATH" apply --reverse --check "$GITHUB_WORKSPACE/$patch" 2>/dev/null; then
+              echo "$patch already applied, skipping"
+            else
+              git -C "$PICO_PATH" apply "$GITHUB_WORKSPACE/$patch"
+            fi
           done
 
       - name: Run twister (build + run native_sim)
@@ -73,16 +73,6 @@ jobs:
             --inline-logs \
             -v \
             --outdir twister-out
-
-      - name: Show merged Kconfig for native_sim builds
-        if: always()
-        shell: bash
-        run: |
-          find twister-out -path "*native_sim*" -name .config | while read -r cfg; do
-            echo "::group::$cfg"
-            grep -E "OFFLOAD|ETH_NATIVE|NET_TCP|NET_IPV4|NET_DRIVERS|NET_NATIVE|NET_SOCKETS" "$cfg" || true
-            echo "::endgroup::"
-          done
 
       - name: Show twister run output
         if: always()
@@ -108,3 +98,4 @@ jobs:
             twister-out/twister.json
           retention-days: 7
           if-no-files-found: warn
+          include-hidden-files: true
