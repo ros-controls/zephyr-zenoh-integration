@@ -13,4 +13,4 @@ common:
 tests:
   sample.zenbedded.zenoh_e2e:
     platform_allow:
-      - native_sim
+      - native_sim/native/64

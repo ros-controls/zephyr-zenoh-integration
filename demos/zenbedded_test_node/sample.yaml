@@ -12,5 +12,5 @@ tests:
         - "SUCCESS: JointState payload extracted cleanly."
         - "SUCCESS: JointCommand payload extracted cleanly."
     platform_allow:
-      - native_sim
+      - native_sim/native/64
       - esp32s3_devkitc/esp32s3/procpu
