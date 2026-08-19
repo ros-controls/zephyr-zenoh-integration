@@ -20,8 +20,7 @@ from twister_harness import DeviceAdapter
 
 
 def test_zenoh_client_connects(zenoh_router, dut: DeviceAdapter):
-    lines = dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
-    assert any("Zenoh client connected" in line for line in lines)
+    dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
 
 
 def test_host_message_is_printed(zenoh_router, dut: DeviceAdapter):
@@ -31,8 +30,7 @@ def test_host_message_is_printed(zenoh_router, dut: DeviceAdapter):
 
     session = zenoh.open(config)
     try:
-        lines = dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
-        assert any("Zenoh client connected" in line for line in lines)
+        dut.readlines_until(regex=r"Zenoh client connected", timeout=10)
 
         publisher = session.declare_publisher("zenbedded/e2e/test")
 
