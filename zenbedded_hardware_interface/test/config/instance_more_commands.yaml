@@ -1,0 +1,7 @@
+state_interfaces:
+  gantry:
+    position: float64
+command_interfaces:
+  gantry:
+    position: float64
+    velocity: float64

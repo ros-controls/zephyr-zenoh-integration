@@ -14,6 +14,7 @@
 
 #include <gmock/gmock.h>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -357,4 +358,144 @@ TEST_F(TestZenbeddedHardware, multi_instance_independent_schemas)
 
   EXPECT_EQ(hw_arm->on_deactivate(state), CallbackReturn::SUCCESS);
   EXPECT_EQ(hw_gripper->on_deactivate(state), CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestZenbeddedHardware, activate_initializes_all_command_interfaces)
+{
+  // Schema with more command than state interfaces: every command must be
+  // initialized on activation, independent of how many states there are.
+  hardware_interface::HardwareInfo info;
+  info.name = "test_hw_more_commands";
+  info.hardware_parameters["zenoh_endpoint"] = "tcp/127.0.0.1:21555";
+  info.hardware_parameters["state_topic"] = "gantry/state";
+  info.hardware_parameters["command_topic"] = "gantry/cmd";
+  info.hardware_parameters["zenoh_mode"] = "client";
+  info.hardware_parameters["schema_path"] =
+    std::string(TEST_CONFIG_DIR) + "/instance_more_commands.yaml";
+
+  hardware_interface::HardwareComponentInterfaceParams params;
+  params.hardware_info = info;
+
+  auto hw = std::make_unique<zenbedded::ZenbeddedHardware>();
+  ASSERT_EQ(hw->on_init(params), CallbackReturn::SUCCESS);
+
+  rclcpp_lifecycle::State state(1, "unconfigured");
+  ASSERT_EQ(hw->on_activate(state), CallbackReturn::SUCCESS);
+
+  auto ci = hw->export_command_interfaces();
+  ASSERT_EQ(ci.size(), 2u);
+  for (const auto & c : ci)
+  {
+    auto value = c.get_optional();
+    ASSERT_TRUE(value.has_value());
+    EXPECT_FALSE(std::isnan(*value)) << c.get_name() << " left NaN by on_activate";
+    EXPECT_DOUBLE_EQ(*value, 0.0) << c.get_name();
+  }
+
+  EXPECT_EQ(hw->on_deactivate(state), CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestZenbeddedHardware, undersized_state_payload_is_rejected)
+{
+  rclcpp_lifecycle::State state(1, "unconfigured");
+  ASSERT_EQ(hw_->on_activate(state), CallbackReturn::SUCCESS);
+
+  zenbedded_state_t state_data;
+  state_data.motor_arm_position = 3.14;
+  state_data.pendulum_axis_position = 2.71;
+  auto good = std::vector<uint8_t>(
+    reinterpret_cast<const uint8_t *>(&state_data),
+    reinterpret_cast<const uint8_t *>(&state_data) + sizeof(zenbedded_state_t));
+
+  // Establish a live pipeline with a valid payload first
+  bool received = false;
+  for (int attempt = 0; attempt < 5 && !received; attempt++)
+  {
+    test_router_->put(zenoh::KeyExpr("joint_states"), good);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    hw_->read(rclcpp::Time(0), rclcpp::Duration(0, 0));
+    auto si = hw_->export_state_interfaces();
+    received = std::abs(si[0].get_optional().value_or(0) - 3.14) < 1e-9;
+  }
+  ASSERT_TRUE(received);
+
+  // A payload smaller than the schema's state buffer must not alter the states
+  std::vector<uint8_t> undersized{0x42};
+  for (int attempt = 0; attempt < 5; attempt++)
+  {
+    test_router_->put(zenoh::KeyExpr("joint_states"), undersized);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_EQ(
+      hw_->read(rclcpp::Time(0), rclcpp::Duration(0, 0)), hardware_interface::return_type::OK);
+    auto si = hw_->export_state_interfaces();
+    ASSERT_DOUBLE_EQ(si[0].get_optional().value(), 3.14)
+      << "undersized payload corrupted state on attempt " << attempt;
+    ASSERT_DOUBLE_EQ(si[1].get_optional().value(), 2.71)
+      << "undersized payload corrupted state on attempt " << attempt;
+  }
+
+  EXPECT_EQ(hw_->on_deactivate(state), CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestZenbeddedHardware, oversized_state_payload_is_rejected)
+{
+  rclcpp_lifecycle::State state(1, "unconfigured");
+  ASSERT_EQ(hw_->on_activate(state), CallbackReturn::SUCCESS);
+
+  zenbedded_state_t state_data;
+  state_data.motor_arm_position = 3.14;
+  state_data.pendulum_axis_position = 2.71;
+  auto good = std::vector<uint8_t>(
+    reinterpret_cast<const uint8_t *>(&state_data),
+    reinterpret_cast<const uint8_t *>(&state_data) + sizeof(zenbedded_state_t));
+
+  bool received = false;
+  for (int attempt = 0; attempt < 5 && !received; attempt++)
+  {
+    test_router_->put(zenoh::KeyExpr("joint_states"), good);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    hw_->read(rclcpp::Time(0), rclcpp::Duration(0, 0));
+    auto si = hw_->export_state_interfaces();
+    received = std::abs(si[0].get_optional().value_or(0) - 3.14) < 1e-9;
+  }
+  ASSERT_TRUE(received);
+
+  // A payload larger than the schema's state buffer signals a schema mismatch
+  // (e.g. firmware built from a different schema) and must not alter the states
+  std::vector<uint8_t> oversized(2 * sizeof(zenbedded_state_t), 0);
+  double wrong_a = 9.9, wrong_b = 8.8;
+  std::memcpy(oversized.data(), &wrong_a, sizeof(double));
+  std::memcpy(oversized.data() + sizeof(double), &wrong_b, sizeof(double));
+
+  for (int attempt = 0; attempt < 5; attempt++)
+  {
+    test_router_->put(zenoh::KeyExpr("joint_states"), oversized);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_EQ(
+      hw_->read(rclcpp::Time(0), rclcpp::Duration(0, 0)), hardware_interface::return_type::OK);
+    auto si = hw_->export_state_interfaces();
+    ASSERT_DOUBLE_EQ(si[0].get_optional().value(), 3.14)
+      << "oversized payload corrupted state on attempt " << attempt;
+    ASSERT_DOUBLE_EQ(si[1].get_optional().value(), 2.71)
+      << "oversized payload corrupted state on attempt " << attempt;
+  }
+
+  EXPECT_EQ(hw_->on_deactivate(state), CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestZenbeddedHardware, write_before_activation_is_safe)
+{
+  // ros2_control invokes read()/write() on INACTIVE components too;
+  // write() must be a safe no-op before on_activate has run.
+  EXPECT_EQ(
+    hw_->write(rclcpp::Time(0), rclcpp::Duration(0, 0)), hardware_interface::return_type::OK);
+}
+
+TEST_F(TestZenbeddedHardware, write_after_deactivation_is_safe)
+{
+  rclcpp_lifecycle::State state(1, "unconfigured");
+  ASSERT_EQ(hw_->on_activate(state), CallbackReturn::SUCCESS);
+  ASSERT_EQ(hw_->on_deactivate(state), CallbackReturn::SUCCESS);
+  EXPECT_EQ(
+    hw_->write(rclcpp::Time(0), rclcpp::Duration(0, 0)), hardware_interface::return_type::OK);
 }
