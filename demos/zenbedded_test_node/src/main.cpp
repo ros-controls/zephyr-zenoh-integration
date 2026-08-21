@@ -16,8 +16,7 @@
 #include <stdio.h>
 
 #include <zephyr/kernel.h>
-
-#include "zenbedded_transport/serialization.h"
+#include <zenbedded_transport/serialization.hpp>
 
 #ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 static void print_hex_dump(const char * label, const uint8_t * buffer, size_t size)

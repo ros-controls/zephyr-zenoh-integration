@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
+#include <zenbedded_rcl/generated/interface_data.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
@@ -21,9 +22,6 @@
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
 LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
-
-#define STATE_TOPIC "zenbedded/test/state"
-#define CMD_TOPIC "zenbedded/test/cmd"
 
 constexpr uint32_t kControlFreqHz = 50;
 constexpr int kIterations = 200;            // ~4s at 50Hz
@@ -73,9 +71,9 @@ int main(void)
   esp_wifi_set_ps(WIFI_PS_NONE);
   k_sleep(K_MSEC(200));
 
-  static ZenbeddedClient client;
+  ZenbeddedClient<RawCodec<zenbedded_state_t>, RawCodec<zenbedded_command_t>> client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, kControlFreqHz);
+  int ret = client.init(kControlFreqHz);
   report(ret == 0, "client.init() returned 0");
   if (ret != 0)
   {
@@ -85,38 +83,31 @@ int main(void)
   report(client.is_initialized(), "client.is_initialized() is true after init()");
 
   bool cmd_val_changed = false;
-  int sync_calls = 0;
 
   for (int i = 0; i < kIterations; i++)
   {
-    zenbedded_state_t & s = client.state();
-    double di = static_cast<double>(i);
-    s.motor_arm_position = sin(di * 0.1) * 90.0;
-    s.pendulum_axis_position = di * 0.01;
+    auto di = static_cast<double>(i);
+    zenbedded_state_t state{
+      .motor_arm_position = sin(di * 0.1) * 90.0, .pendulum_axis_position = di * 0.01};
+    client.write_state(state);
 
-    client.sync();
-    sync_calls++;
-
-    const zenbedded_command_t & cmd = client.command();
+    zenbedded_command_t cmd{};
+    client.read_command(cmd);
+    if (cmd.motor_arm_position >= 1e-9)
+    {
+      cmd_val_changed = true;
+    }
 
     if (i % 20 == 0)
     {
       LOG_INF(
         "iter=%d state.motor_arm=%.2f "
         "state.pendulum=%.2f cmd.motor_arm=%.2f",
-        i, s.motor_arm_position, s.pendulum_axis_position, cmd.motor_arm_position);
-    }
-
-    // check if the value changes
-    if (fabs(cmd.motor_arm_position) >= 1e-9)
-    {
-      cmd_val_changed = true;
+        i, state.motor_arm_position, state.pendulum_axis_position, cmd.motor_arm_position);
     }
 
     k_sleep(K_MSEC(1000 / kControlFreqHz));
   }
-
-  report(sync_calls == kIterations, "sync() called for every iteration without crashing");
 
   report(
     cmd_val_changed,
