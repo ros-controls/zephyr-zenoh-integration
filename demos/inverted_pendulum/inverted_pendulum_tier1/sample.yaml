@@ -1,9 +1,9 @@
 sample:
-  name: Inverted Pendulum Zenoh Demo
+  name: Inverted Pendulum Tier1 Demo
 common:
   build_only: true
   tags: zenoh
 tests:
-  sample.zenbedded.inverted_pendulum:
+  sample.zenbedded.inverted_pendulum_tier1:
     platform_allow:
       - esp32s3_devkitc/esp32s3/procpu
