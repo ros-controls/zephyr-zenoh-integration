@@ -2,16 +2,17 @@ name: Zephyr Twister
 
 on:
   workflow_dispatch:
-  pull_request: &event
-    branches:
-      - master
-    paths:
+  pull_request:
+    paths: &zephyr_twister_paths
       - 'demos/**'
       - 'zenbedded_rcl/**'
       - 'zenbedded_schema/**'
       - 'zenbedded_transport/**'
       - '.github/workflows/zephyr-twister.yml'
-  push: *event
+  push:
+    branches:
+      - master
+    paths: *zephyr_twister_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -48,14 +49,17 @@ jobs:
           rosdep install --from-paths src --ignore-src -r -y
           colcon build
 
-      - name: Apply wrap_zenoh_config.patch
+      - name: Apply zenoh-pico patches
         shell: bash
         run: |
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
-          cp docker/wrap_zenoh_config.patch "$PICO_PATH/wrap_zenoh_config.patch"
-          cd $PICO_PATH
-          git apply wrap_zenoh_config.patch 2>/dev/null || true
-          rm wrap_zenoh_config.patch
+          for patch in docker/*.patch; do
+            if git -C "$PICO_PATH" apply --reverse --check "$GITHUB_WORKSPACE/$patch" 2>/dev/null; then
+              echo "$patch already applied, skipping"
+            else
+              git -C "$PICO_PATH" apply "$GITHUB_WORKSPACE/$patch"
+            fi
+          done
 
       - name: Run twister (build + run native_sim)
         shell: bash
@@ -64,7 +68,7 @@ jobs:
           export ZEPHYR_BASE=/zephyr_ws/zephyr
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
-            --platform native_sim \
+            --platform native_sim/native/64 \
             --platform esp32s3_devkitc/esp32s3/procpu \
             --inline-logs \
             -v \
@@ -82,3 +86,16 @@ jobs:
             cat "$log"
             echo "::endgroup::"
           done
+
+      - name: Upload twister logs and configs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twister-out
+          path: |
+            twister-out/**/*.log
+            twister-out/**/.config
+            twister-out/twister.json
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: true

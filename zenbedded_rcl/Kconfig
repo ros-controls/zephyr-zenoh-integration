@@ -8,7 +8,7 @@ menu "Zenbedded RCL Configuration"
 
     config ZENBEDDED_RCL_THREAD_PRIORITY
         int "Zenbedded thread priority"
-        default 5
+        default 1
         help
             Zephyr thread priority for the zenbedded thread.
             Lower number = higher priority.
@@ -19,5 +19,13 @@ menu "Zenbedded RCL Configuration"
         range 1024 16384
         help
             Stack size for the zenbedded thread.
+
+    config ZENBEDDED_RCL_ZENOH_MODE
+        string "The mode for zenoh-pico peer/client"
+        default "client"
+
+    config ZENBEDDED_RCL_ZENOH_LOCATOR
+        string "The locator/address to connect to for zenoh-pico"
+        default ""
 
 endmenu
