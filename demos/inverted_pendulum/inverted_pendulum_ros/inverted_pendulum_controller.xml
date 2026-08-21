@@ -1,0 +1,11 @@
+<library path="zenbedded_inverted_pendulum">
+  <class name="inverted_pendulum_controller/InvertedPendulumController"
+         type="inverted_pendulum_controller::InvertedPendulumController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Feedback controller for a Furuta (rotary) inverted pendulum.
+      Reads pendulum position and velocity from state interfaces and outputs
+      a motor joint acceleration command via PD control.
+    </description>
+  </class>
+</library>
