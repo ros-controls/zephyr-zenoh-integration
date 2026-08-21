@@ -209,7 +209,7 @@ void ZenbeddedClientBase::control_thread_fn(void * arg1, void * arg2, void * arg
     return;
   }
 
-  LOG_INF("Control thread started at %d", self->control_freq_);
+  LOG_INF("Control thread started");
 
   const uint32_t period_ms = MAX(1000 / self->control_freq_, 1);
   uint32_t prev_time = k_uptime_get_32();
