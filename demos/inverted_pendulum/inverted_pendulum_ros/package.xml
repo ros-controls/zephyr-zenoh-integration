@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>zenbedded_inverted_pendulum</name>
+    <version>0.0.1</version>
+    <description>launch for the Zenbedded inverted-pendulum demo</description>
+    <maintainer email="itzkamalkant@gmail.com">kamal2730</maintainer>
+    <license>Apache-2.0</license>
+
+    <buildtool_depend>ament_cmake</buildtool_depend>
+
+    <test_depend>ament_cmake_pytest</test_depend>
+    <test_depend>controller_manager_msgs</test_depend>
+
+    <depend>rclcpp</depend>
+    <depend>rclcpp_lifecycle</depend>
+    <exec_depend>zenbedded_hardware_interface</exec_depend>
+    <depend>robot_state_publisher</depend>
+    <depend>controller_manager</depend>
+    <depend>hardware_interface</depend>
+    <depend>controller_interface</depend>
+    <depend>pluginlib</depend>
+    <depend>xacro</depend>
+    <depend>launch_ros</depend>
+
+    <export>
+        <build_type>ament_cmake</build_type>
+        <controller_interface plugin="${prefix}/inverted_pendulum_controller.xml"/>
+        <hardware_interface plugin="${prefix}/mock_pendulum_hardware.xml"/>
+    </export>
+</package>

@@ -1,0 +1,11 @@
+<library path="mock_pendulum_hardware">
+  <class name="mock_pendulum_hardware/MockPendulumHardware"
+         type="mock_pendulum_hardware::MockPendulumHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      In-process mock hardware that simulates Furuta pendulum dynamics.
+      Accepts motor joint acceleration commands and computes coupled
+      2-DOF Lagrangian dynamics. Used for testing without real hardware.
+    </description>
+  </class>
+</library>

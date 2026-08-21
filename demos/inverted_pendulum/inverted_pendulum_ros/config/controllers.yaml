@@ -1,0 +1,18 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    inverted_pendulum_controller:
+      type: inverted_pendulum_controller/InvertedPendulumController
+
+inverted_pendulum_controller:
+  ros__parameters:
+    motor_joint_state_name: motor_joint/position
+    motor_joint_vel_name: motor_joint/velocity
+    pendulum_joint_state_name: pendulum_joint/position
+    pendulum_joint_vel_name: pendulum_joint/velocity
+    motor_joint_command_name: motor_joint/acceleration
+    balance_angle: 0.0
+    kp: 1.0
+    kd: 0.1
+    max_acceleration: 5.0
