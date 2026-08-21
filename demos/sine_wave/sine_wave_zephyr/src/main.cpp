@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <esp_wifi.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
@@ -22,76 +22,46 @@
 
 LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
 
-#ifndef WIFI_SSID
-#define WIFI_SSID "mechatronic"
-#endif
-#ifndef WIFI_PSK
-#define WIFI_PSK "87654321"
-#endif
-#ifndef ZENOH_MODE
-#define ZENOH_MODE "client"
-#endif
-#ifndef ZENOH_LOCATOR
-#define ZENOH_LOCATOR "tcp/10.70.246.128:7447"
-#endif
-
 #define STATE_TOPIC "zenbedded/sine_wave/state"
 #define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
-K_SEM_DEFINE(network_connected_sem, 0, 1);
-
-void net_event_handler(net_mgmt_event_callback * cb, uint32_t mgmt_event, net_if * iface)
-{
-  if (mgmt_event == NET_EVENT_IPV4_ADDR_ADD)
-  {
-    LOG_INF("got IPv4 address");
-    k_sem_give(&network_connected_sem);
-  }
-}
-
-int connect_wifi_blocking()
-{
-  static net_mgmt_event_callback cb;
-  net_mgmt_init_event_callback(&cb, net_event_handler, NET_EVENT_IPV4_ADDR_ADD);
-  net_mgmt_add_event_callback(&cb);
-
-  net_if * iface = net_if_get_default();
-
-  wifi_connect_req_params params = {
-    .ssid = reinterpret_cast<const uint8_t *>(WIFI_SSID),
-    .ssid_length = sizeof(WIFI_SSID) - 1,
-    .psk = reinterpret_cast<const uint8_t *>(WIFI_PSK),
-    .psk_length = sizeof(WIFI_PSK) - 1,
-    .channel = WIFI_CHANNEL_ANY,
-    .security = WIFI_SECURITY_TYPE_PSK,
-  };
-
-  LOG_INF("connecting to WiFi...");
-  int ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params, sizeof(params));
-  if (ret)
-  {
-    LOG_ERR("WiFi connect request failed: %d", ret);
-    return ret;
-  }
-
-  k_sem_take(&network_connected_sem, K_FOREVER);
-  return 0;
-}
-
-float wave_amp = 5;
-float wave_frequency = 1.4;  // hz
-uint32_t loop_freq = 100;    // hz
+double wave_amp = 5;
+double wave_frequency = 1.4;           // hz
+uint32_t loop_freq = 100;              // hz
+uint32_t kWifiConnectTimeout = 15000;  // ms
 
 int main()
 {
-  LOG_INF("starting test node");
-  k_sleep(K_MSEC(2000));
-  connect_wifi_blocking();
-  k_sleep(K_MSEC(100));
+  LOG_INF("starting Sine Wave Zephyr App");
+  net_if * iface = net_if_get_default();
+
+  LOG_INF("connecting to WiFi using stored credentials...");
+  uint32_t timer = k_uptime_get_32();
+  while (net_mgmt(NET_REQUEST_WIFI_CONNECT_STORED, iface, nullptr, 0) != 0)
+  {
+    if (k_uptime_get_32() - timer > kWifiConnectTimeout)
+    {
+      LOG_ERR("Wifi Connection Timedout ...");
+      return -1;
+    }
+    LOG_ERR("WiFi connect-stored request failed... retrying...");
+    k_sleep(K_MSEC(200));
+  }
+
+  LOG_INF("Connected... Waiting for IPV4 address");
+  while (net_if_ipv4_get_global_addr(iface, NET_ADDR_PREFERRED) == nullptr)
+  {
+    k_sleep(K_MSEC(200));
+  }
+  LOG_INF("Got IPV4 address");
+
+  // Disable Wi-Fi power saving
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  k_sleep(K_MSEC(200));
 
   static ZenbeddedClient client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, ZENOH_MODE, ZENOH_LOCATOR, loop_freq);
+  int ret = client.init(STATE_TOPIC, CMD_TOPIC, loop_freq);
   if (ret != 0)
   {
     LOG_ERR("ZenbeddedClient.init failed with %d, aborting", ret);
@@ -106,18 +76,18 @@ int main()
     const zenbedded_command_t & cmd = client.command();
     zenbedded_state_t & state = client.state();
 
-    if (cmd.sine_wave_amplitude != 0.0f)
+    if (fabs(cmd.sine_wave_amplitude) >= 1e-6)
     {
       cmd_recv = true;
     }
     if (cmd_recv)
     {
-      wave_amp = fabsf(cmd.sine_wave_amplitude);
+      wave_amp = fabs(cmd.sine_wave_amplitude);
     }
 
-    auto current_time_ms = static_cast<float>(k_uptime_get() - start_time);
-    float x = 2 * static_cast<float>(M_PI) * current_time_ms * wave_frequency / 1000.0f;
-    state.sine_wave_position = wave_amp * sinf(x);
+    auto current_time_ms = static_cast<double>(k_uptime_get() - start_time);
+    double x = 2.0 * M_PI * current_time_ms * wave_frequency / 1000.0;
+    state.sine_wave_position = wave_amp * sin(x);
 
     if (++cnt == 500)
     {
