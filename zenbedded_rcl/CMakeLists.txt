@@ -1,4 +1,4 @@
-if(DEFINED CONFIG_ZENBEDDED_RCL)
+if(CONFIG_ZENBEDDED_RCL)
 
 if(NOT DEFINED ZENBEDDED_SCHEMA_FILE)
     set(ZENBEDDED_SCHEMA_FILE interface_schema.yaml)
@@ -21,7 +21,7 @@ find_package(zenbedded_schema REQUIRED NO_CMAKE_FIND_ROOT_PATH)
 
 
 # Generate the header at build time
-set(ZENBEDDED_GEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/zenbedded_rcl/generated)
+set(ZENBEDDED_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated_include/zenbedded_rcl/generated)
 set(ZENBEDDED_GEN_HEADER ${ZENBEDDED_GEN_DIR}/interface_data.h)
 zenbedded_generate_header(
     YAML   ${ZENBEDDED_SCHEMA_FILE_ABS}
@@ -37,9 +37,13 @@ zephyr_library_sources(
 )
 
 target_include_directories(zenbedded_rcl PUBLIC include)
+target_include_directories(zenbedded_rcl PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated_include)
 target_link_libraries(zenbedded_rcl PUBLIC zenbedded_transport)
 
 # Ensure the header exists before library compiles.
 add_dependencies(zenbedded_rcl ${generate_interface_data})
+if(TARGET app)
+    add_dependencies(app ${generate_interface_data})
+endif()
 
 endif() # CONFIG_ZENBEDDED_RCL
