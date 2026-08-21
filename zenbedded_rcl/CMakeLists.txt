@@ -41,7 +41,7 @@ target_include_directories(zenbedded_rcl PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/gene
 target_link_libraries(zenbedded_rcl PUBLIC zenbedded_transport)
 
 # Ensure the header exists before library compiles.
-add_dependencies(zenbedde_rcl ${generate_interface_data})
+add_dependencies(zenbedded_rcl ${generate_interface_data})
 if(TARGET app)
     add_dependencies(app ${generate_interface_data})
 endif()
