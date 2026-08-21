@@ -19,7 +19,7 @@
 
 #include "zenbedded_transport/serialization.h"
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 static void print_hex_dump(const char * label, const uint8_t * buffer, size_t size)
 {
   printf("\n--- %s HEX DUMP (%zu bytes) ---\n", label, size);
@@ -41,7 +41,7 @@ int main()
   printf("  Zenbedded CDR: Integration Test Node\n");
   printf("=======================================\n");
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
   printf("\n[Tier 1 Native CDR Engine Enabled]\n");
 
   // --- JointState Loopback Test ---
@@ -114,7 +114,7 @@ int main()
   }
 
 #else
-  printf("\nCONFIG_TIER_1 is disabled. Skipping CDR tests.\n");
+  printf("\nCONFIG_ZENBEDDED_TRANSPORT_TIER_1 is disabled. Skipping CDR tests.\n");
 #endif
 
   return 0;
