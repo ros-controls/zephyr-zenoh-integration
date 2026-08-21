@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
+#include <zenbedded_rcl/generated/interface_data.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
@@ -21,9 +22,6 @@
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
 LOG_MODULE_REGISTER(sine_wave_zephyr, LOG_LEVEL_INF);
-
-#define STATE_TOPIC "zenbedded/sine_wave/state"
-#define CMD_TOPIC "zenbedded/sine_wave/cmd"
 
 double wave_amp = 5;
 double wave_frequency = 1.4;           // hz
@@ -59,9 +57,9 @@ int main()
   esp_wifi_set_ps(WIFI_PS_NONE);
   k_sleep(K_MSEC(200));
 
-  static ZenbeddedClient client;
+  ZenbeddedClient<RawCodec<zenbedded_state_t>, RawCodec<zenbedded_command_t>> client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, loop_freq);
+  int ret = client.init(loop_freq);
   if (ret != 0)
   {
     LOG_ERR("ZenbeddedClient.init failed with %d, aborting", ret);
@@ -70,32 +68,24 @@ int main()
 
   int64_t start_time = k_uptime_get();  // Get kernel boot time in ms
   int32_t cnt = 0;
-  bool cmd_recv = false;
   while (true)
   {
-    const zenbedded_command_t & cmd = client.command();
-    zenbedded_state_t & state = client.state();
-
-    if (fabs(cmd.sine_wave_amplitude) >= 1e-6)
-    {
-      cmd_recv = true;
-    }
-    if (cmd_recv)
+    zenbedded_command_t cmd;
+    if (client.read_command(cmd))
     {
       wave_amp = fabs(cmd.sine_wave_amplitude);
     }
 
     auto current_time_ms = static_cast<double>(k_uptime_get() - start_time);
     double x = 2.0 * M_PI * current_time_ms * wave_frequency / 1000.0;
-    state.sine_wave_position = wave_amp * sin(x);
+    zenbedded_state_t state{.sine_wave_position = wave_amp * sin(x)};
+    client.write_state(state);
 
     if (++cnt == 500)
     {
       LOG_INF("Running...");
       cnt = 0;
     }
-
-    client.sync();
 
     k_sleep(K_MSEC(20));
   }
