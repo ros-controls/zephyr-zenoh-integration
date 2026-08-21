@@ -1,8 +1,0 @@
-state_interfaces:
-  stepper_motor:
-    position: float32
-  magnetic_encoder:
-    position: float32
-command_interfaces:
-  stepper_motor:
-    velocity: float32
