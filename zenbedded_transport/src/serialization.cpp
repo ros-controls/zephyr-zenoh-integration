@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "zenbedded_transport/serialization.h"
+#include "zenbedded_transport/serialization.hpp"
 
-#include <string.h>
+#include <cstring>
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
 
-#define ALIGN_UP(offset, alignment) (((offset) + (alignment) - 1) & ~((alignment) - 1))
+#define CDR_HEADER_SIZE 4
+#define ALIGN_UP(offset, alignment) \
+  (CDR_HEADER_SIZE + ((((offset) - CDR_HEADER_SIZE) + (alignment) - 1) & ~((alignment) - 1)))
 
 void zcdr_init_joint_state(
   zcdr_joint_state_ctx_t * ctx, const char * frame_id, const char ** joint_names,
@@ -257,4 +259,4 @@ bool zcdr_deserialize_joint_command(
   return true;
 }
 
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1

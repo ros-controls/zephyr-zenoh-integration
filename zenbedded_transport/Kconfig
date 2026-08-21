@@ -1,19 +1,89 @@
 menu "Zephyr Zenoh Integration Configuration"
 
-config ZENOH_TRANSPORT_DOMAIN_ID
-    int "ROS 2 Domain ID"
-    default 0
+    config ZENBEDDED_ZENOH_MODE
+        string "The mode for zenoh-pico peer/client"
+        default "client"
 
-choice ZENOH_TRANSPORT_TIER
-    prompt "Integration Tier"
-    default TIER_1
+    config ZENBEDDED_ZENOH_LOCATOR
+        string "The locator/address to connect to for zenoh-pico"
+        default ""
 
-config TIER_1
-    bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
-config TIER_2
-    bool "Tier 2: High-Throughput Raw Numeric"
-config TIER_3
-    bool "Tier 3: Bit-Optimal Packed"
+    config ZENBEDDED_PUB_TOPIC
+        string "Name of the topic for publishing"
+        default "zenbedded/state"
 
-endchoice
+    config ZENBEDDED_SUB_TOPIC
+        string "name of the topic for subscribing"
+        default "zenbedded/cmd"
+
+    choice ZENBEDDED_TRANSPORT_TIER
+        prompt "Integration Tier"
+        default ZENBEDDED_TRANSPORT_TIER_1
+
+        config ZENBEDDED_TRANSPORT_TIER_1
+            bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
+        config ZENBEDDED_TRANSPORT_TIER_2
+            bool "Tier 2: High-Throughput Raw Numeric"
+        config ZENBEDDED_TRANSPORT_TIER_3
+            bool "Tier 3: Bit-Optimal Packed"
+
+    endchoice
+
+    config ZENBEDDED_MAX_STATE_BUFFER_SIZE
+        int "Maximum size of state message (for static allocation)"
+        default 256
+
+    config ZENBEDDED_MAX_CMD_BUFFER_SIZE
+        int "Maximum size of cmd message (for static allocation)"
+        default 256
+
+
+    if ZENBEDDED_TRANSPORT_TIER_1
+
+    config ZENBEDDED_DOMAIN_ID
+        int "ROS 2 Domain ID"
+        default 0
+
+    config ZENBEDDED_NODE_NAME
+        string "The ros2 node name assigned to the MCU"
+        default "zenbedded_mcu"
+
+    choice
+        prompt "State (published) message type"
+        default ZENBEDDED_STATE_MSG_JOINT_STATE
+        help
+          ROS 2 message type serialized onto ZENBEDDED_PUB_TOPIC.
+
+        config ZENBEDDED_STATE_MSG_IMU
+            bool "sensor_msgs/msg/Imu"
+
+        config ZENBEDDED_STATE_MSG_JOINT_STATE
+            bool "sensor_msgs/msg/JointState"
+
+        config ZENBEDDED_STATE_MSG_FLOAT64_MULTI_ARRAY
+            bool "std_msgs/msg/Float64MultiArray"
+
+        config ZENBEDDED_STATE_MSG_TWIST
+            bool "geometry_msgs/msg/Twist"
+    endchoice
+
+    choice
+        prompt "Command (subscribed) message type"
+        default ZENBEDDED_CMD_MSG_JOINT_COMMAND
+        help
+          ROS 2 message type deserialized from ZENBEDDED_SUB_TOPIC.
+
+        config ZENBEDDED_CMD_MSG_JOINT_COMMAND
+            bool "control_msgs/msg/JointCommand"
+
+        config ZENBEDDED_CMD_MSG_FLOAT64_MULTI_ARRAY
+            bool "std_msgs/msg/Float64MultiArray"
+
+        config ZENBEDDED_CMD_MSG_TWIST
+            bool "geometry_msgs/msg/Twist"
+    endchoice
+
+    endif # ZENBEDDED_TRANSPORT_TIER_1
+
+
 endmenu
