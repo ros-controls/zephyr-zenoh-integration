@@ -129,19 +129,35 @@ CallbackReturn ZenbeddedHardware::on_activate(const rclcpp_lifecycle::State & /*
       [this](zenoh::Sample & sample)
       {
         const auto & payload = sample.get_payload();
-        state_buffer_.writeFromNonRT(payload.as_vector());
+        auto bytes = payload.as_vector();
+        if (bytes.size() != schema_.state_buffer_size())
+        {
+          RCLCPP_WARN_THROTTLE(
+            rclcpp::get_logger("ZenbeddedHardware"), steady_clock_, 1000,
+            "Dropping state payload of %zu bytes, schema expects %zu", bytes.size(),
+            schema_.state_buffer_size());
+          return;
+        }
+        state_buffer_.writeFromNonRT(std::move(bytes));
       },
       []() {}, zenoh::Session::SubscriberOptions::create_default(), nullptr));
 
     command_pub_ = std::make_unique<zenoh::Publisher>(session_->declare_publisher(
       zenoh::KeyExpr(command_topic_), zenoh::Session::PublisherOptions::create_default(), nullptr));
 
-    for (size_t i = 0; i < hw_states_.size(); i++)
+    for (auto & state : hw_states_)
     {
-      if (std::isnan(hw_states_[i]))
+      if (std::isnan(state))
       {
-        hw_states_[i] = 0;
-        hw_commands_[i] = 0;
+        state = 0;
+      }
+    }
+
+    for (auto & command : hw_commands_)
+    {
+      if (std::isnan(command))
+      {
+        command = 0;
       }
     }
   }
@@ -167,7 +183,7 @@ hardware_interface::return_type ZenbeddedHardware::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   auto buf = state_buffer_.readFromRT();
-  if (buf)
+  if (buf && buf->size() == schema_.state_buffer_size())
   {
     for (size_t i = 0; i < schema_.total_state_interfaces(); i++)
     {
@@ -180,6 +196,11 @@ hardware_interface::return_type ZenbeddedHardware::read(
 hardware_interface::return_type ZenbeddedHardware::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
+  if (!command_pub_)
+  {
+    return hardware_interface::return_type::OK;
+  }
+
   for (size_t i = 0; i < schema_.total_command_interfaces(); i++)
   {
     schema_.write_command_field(command_buffer_.data(), i, hw_commands_[i]);
