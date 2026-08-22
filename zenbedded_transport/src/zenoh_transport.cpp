@@ -118,7 +118,6 @@ static void zenoh_sub_handler(z_loaned_sample_t * sample, void * ctx)
   {
     return;
   }
-  LOG_INF("Incoming sample from ros2");
 
   const size_t len = z_bytes_len(z_sample_payload(sample));
   if (len == 0 || len > CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE)
