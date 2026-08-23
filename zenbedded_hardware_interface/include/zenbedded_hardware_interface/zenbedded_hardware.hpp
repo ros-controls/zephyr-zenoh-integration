@@ -27,6 +27,7 @@
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
+#include "rclcpp/clock.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
@@ -77,6 +78,7 @@ private:
   std::string zenoh_mode_;
   std::string state_topic_;
   std::string command_topic_;
+  rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
 };
 
 }  // namespace zenbedded
