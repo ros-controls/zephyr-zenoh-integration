@@ -55,15 +55,28 @@ def generate_launch_description():
         )
     )
 
+    joint_state_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["joint_state_broadcaster", "--param-file", controllers_yaml],
+    )
+
+    delay_broadcaster_after_ros2_control = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=ros2_control_node,
+            on_start=[joint_state_broadcaster_spawner],
+        )
+    )
+
     sine_wave_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["sine_wave_controller", "--param-file", controllers_yaml],
     )
 
-    delay_controller_after_ros2_control = RegisterEventHandler(
+    delay_controller_after_broadcaster = RegisterEventHandler(
         event_handler=OnProcessStart(
-            target_action=ros2_control_node,
+            target_action=joint_state_broadcaster_spawner,
             on_start=[sine_wave_controller_spawner],
         )
     )
@@ -72,6 +85,7 @@ def generate_launch_description():
         [
             robot_state_publisher_node,
             delay_ros2_control_after_rsp,
-            delay_controller_after_ros2_control,
+            delay_broadcaster_after_ros2_control,
+            delay_controller_after_broadcaster,
         ]
     )
