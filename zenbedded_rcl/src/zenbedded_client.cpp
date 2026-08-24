@@ -303,8 +303,8 @@ int ZenbeddedClient::start_thread(uint32_t control_freq)
     nullptr,  // arg2
     nullptr,  // arg3
     CONFIG_ZENBEDDED_RCL_THREAD_PRIORITY,
-    K_FP_REGS,  // options-Enforce FPU register saving for Xtensa silicon
-    K_NO_WAIT   // start immediately
+    0,         // options
+    K_NO_WAIT  // start immediately
   );
 
   control_thread_started_ = true;
