@@ -13,7 +13,10 @@ services:
       # --- Zephyr RTOS Workspace (MCU Side) ---
       - ./zenbedded_transport:/zephyr_ws/zenbedded_transport
       - ./zenbedded_rcl:/zephyr_ws/zenbedded_rcl
+<<<<<<< HEAD
       - ./zenbedded_schema:/zephyr_ws/zenbedded_schema
+=======
+>>>>>>> 0a2c655 (ci: enforce ASan/UBSan memory gates and standardize root repository layout)
       - ./demos:/zephyr_ws/demos
 
     stdin_open: true

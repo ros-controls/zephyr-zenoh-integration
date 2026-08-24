@@ -2,15 +2,29 @@ sample:
   name: Zenbedded CDR Integration Test
 common:
   tags: zenoh
-  build_only: true
 tests:
-  sample.zenbedded.zenbedded_test_node:
+  sample.zenbedded.transport.build:
+    build_only: true
     platform_allow:
       - native_sim/native/64
       - esp32s3_devkitc/esp32s3/procpu
-  sample.zenbedded.zenbedded_test_node.asan:
+      
+  sample.zenbedded.transport.asan:
+    build_only: true
     platform_allow:
       - native_sim/native/64
     extra_configs:
       - CONFIG_ASAN=y
       - CONFIG_UBSAN=y
+      
+  sample.zenbedded.transport.e2e:
+    harness: pytest
+    platform_allow:
+      - native_sim/native/64
+    harness_config:
+      pytest_dut_scope: function
+      pytest_args:
+        - '-p'
+        - 'no:launch_testing'
+        - '-p'
+        - 'no:launch_testing_ros'
