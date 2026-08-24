@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           PICO_PATH="/zephyr_ws/modules/lib/zenoh-pico"
-          for patch in docker/*.patch; do
+          for patch in patches/*.patch; do
             if git -C "$PICO_PATH" apply --reverse --check "$GITHUB_WORKSPACE/$patch" 2>/dev/null; then
               echo "$patch already applied, skipping"
             else
