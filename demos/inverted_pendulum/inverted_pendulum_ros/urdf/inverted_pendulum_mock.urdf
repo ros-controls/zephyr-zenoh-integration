@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<robot name="inverted_pendulum_mock">
+    <link name="base_link"/>
+    <link name="motor_joint_link"/>
+    <link name="pendulum_link"/>
+
+    <joint name="motor_joint" type="continuous">
+        <parent link="base_link"/>
+        <child link="motor_joint_link"/>
+        <axis xyz="0 0 1"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="pendulum_joint" type="continuous">
+        <parent link="motor_joint_link"/>
+        <child link="pendulum_link"/>
+        <axis xyz="0 1 0"/>
+        <origin xyz="0.2 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <ros2_control name="MockPendulumSystem" type="system">
+        <hardware>
+            <plugin>mock_pendulum_hardware/MockPendulumHardware</plugin>
+            <param name="J1">0.001</param>
+            <param name="J2">0.0005</param>
+            <param name="m2">0.05</param>
+            <param name="l2">0.15</param>
+            <param name="b1">0.001</param>
+            <param name="b2">0.0005</param>
+            <param name="g">9.81</param>
+            <param name="initial_q2">0.1</param>
+        </hardware>
+        <joint name="motor_joint">
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <command_interface name="acceleration"/>
+        </joint>
+        <joint name="pendulum_joint">
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+        </joint>
+    </ros2_control>
+</robot>
