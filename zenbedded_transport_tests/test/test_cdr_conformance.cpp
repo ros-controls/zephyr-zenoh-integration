@@ -22,7 +22,7 @@
 #include <rclcpp/serialized_message.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
-#include "zenbedded_transport/serialization.h"
+#include "zenbedded_transport/serialization.hpp"
 
 namespace
 {
