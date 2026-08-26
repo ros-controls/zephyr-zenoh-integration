@@ -30,18 +30,20 @@ zenbedded_generate_header(
 )
 
 
-zephyr_library()
+zephyr_library_named(zenbedded_rcl)
 zephyr_library_sources(
         src/hardware_component.cpp
         src/zenbedded_client.cpp
 )
-zephyr_library_include_directories(include)
-zephyr_include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated_include)
+
+target_include_directories(zenbedded_rcl PUBLIC include)
+target_include_directories(zenbedded_rcl PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated_include)
+target_link_libraries(zenbedded_rcl PUBLIC zenbedded_transport)
 
 # Ensure the header exists before library compiles.
-add_dependencies(${ZEPHYR_CURRENT_LIBRARY} ${generate_interface_data})
+add_dependencies(zenbedded_rcl ${generate_interface_data})
 if(TARGET app)
     add_dependencies(app ${generate_interface_data})
 endif()
 
-endif() #CONFIG_ZENBEDDED_RCL
+endif() # CONFIG_ZENBEDDED_RCL

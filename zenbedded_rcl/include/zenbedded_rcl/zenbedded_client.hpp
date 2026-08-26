@@ -15,104 +15,152 @@
 #ifndef ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 #define ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 
-#include <zenoh-pico.h>
 #include <zephyr/kernel.h>
-#include "zenbedded_rcl/generated/interface_data.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 
-class ZenbeddedClient
+#include "zenbedded_rcl/codecs.hpp"
+
+class ZenbeddedClientBase
 {
 public:
-  ZenbeddedClient() { reset_buffers(); }
+  ZenbeddedClientBase();
+  virtual ~ZenbeddedClientBase() = default;
 
-  /// @brief initialize the zenbedded client
-  /// @param control_freq the loop frequency in Hz (thread only start on positive values)
-  /// @return int
-  int init(const char * state_topic, const char * cmd_topic, uint32_t control_freq = 100);
-
-  // Deinitialize the client
+  /// @brief Deinitialize the client and underlying transport.
   void destroy();
 
-  // Synchronizes buffers between user and the zenbedded client.
-  void sync();
-
-  // Publish the current state via Zenoh.
+  /// @brief Publish current state buffer over Zenoh transport.
   int zenoh_publish_state();
 
-  /// @brief start the zenbedded thread
-  /// @param control_freq the loop frequency in Hz (thread only start on positive values)
-  /// @return int
+  /// @brief Start the control publish thread.
   int start_thread(uint32_t control_freq);
 
-  // Stop zenbedded thread
+  /// @brief Stop the control publish thread.
   void stop_thread();
 
-  // Get a reference to the user's state buffer (for writing).
-  zenbedded_state_t & state() { return user_state_buffer_; }
-
-  // Get a const reference to the user's command buffer (for reading).
-  [[nodiscard]] const zenbedded_command_t & command() const { return user_command_buffer_; }
-
-  // Check if client is initialized.
+  /// @brief Check if client is initialized.
   [[nodiscard]] bool is_initialized() const { return initialized_; }
 
-  bool is_control_thread_running() { return atomic_get(&control_thread_running_); }
+  /// @brief Check if publish thread is running.
+  bool is_control_thread_running();
+
+protected:
+  /// @brief Initializes base buffers, transport layer, and background thread.
+  int init_base(uint32_t control_freq, size_t state_payload_size, size_t cmd_payload_size);
+
+  /// @brief Direct slot access for state codec template initialization.
+  uint8_t * get_state_buffer_slot(size_t slot_idx);
+
+  /// @brief Acquire inactive state buffer index for thread-safe writing.
+  uint8_t * prepare_state_write_slot(int & out_write_idx);
+
+  /// @brief Commit atomic state buffer write and flip active index.
+  void commit_state_write_slot(int write_idx);
+
+  /// @brief Read raw latest command bytes from double buffer.
+  bool read_latest_command_raw(uint8_t * data, size_t size);
+
+  /// @brief Reset atomic buffer states and versions.
+  void reset_buffers();
+
+  bool initialized_ = false;
+  size_t state_payload_size_ = 0;
+  size_t cmd_payload_size_ = 0;
 
 private:
-  // Double-buffer for State
-  zenbedded_state_t state_buffer_[2];  // Double buffer for states
-  atomic_t state_buffer_active_idx_;   // Which buffer is active (0 or 1)
-  atomic_t state_buffer_version_[2];   // buffer versioning for ABA prevention
+  uint8_t state_buffer_[2][CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE]{};
+  atomic_t state_buffer_active_idx_{};
+  atomic_t state_buffer_version_[2]{};
 
-  // Double-buffer for Command
-  zenbedded_command_t cmd_buffer_[2];  // Double buffer for commands
-  atomic_t cmd_buffer_active_idx_;     // Which buffer is active (0 or 1)
-  atomic_t cmd_buffer_version_[2];     // buffer versioning for ABA prevention
+  uint8_t cmd_buffer_[2][CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE]{};
+  atomic_t cmd_buffer_active_idx_{};
+  atomic_t cmd_buffer_version_[2]{};
 
-  // User-space buffers (accessed by user thread)
-  zenbedded_state_t user_state_buffer_{};      // User writes state here
-  zenbedded_command_t user_command_buffer_{};  // User reads commands here
-
-  // Zenoh session, pub & sub.
-  z_owned_session_t z_session_{};
-  z_owned_publisher_t z_state_pub_{};
-  z_owned_subscriber_t z_cmd_sub_{};
-
-  // zenoh topics
-  const char * state_topic_ = nullptr;
-  const char * cmd_topic_ = nullptr;
-
-  // module ready
-  bool initialized_ = false;
-
-  // control thread variables
   uint32_t control_freq_ = 0;
   atomic_t control_thread_running_ = 0;
   bool control_thread_started_ = false;
-  k_thread control_thread_;
-  K_KERNEL_STACK_MEMBER(control_thread_stack_, CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE);
+  k_thread control_thread_{};
+  K_KERNEL_STACK_MEMBER(control_thread_stack_, CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE) {};
 
-  // Control thread function
   static void control_thread_fn(void * arg1, void * arg2, void * arg3);
+  static void on_transport_cmd_cb(const uint8_t * payload, size_t size, void * user_data);
 
-  // Control flags
-  // reset buffers and locks
-  void reset_buffers();
+  void write_state_to_buffer(const uint8_t * data, size_t size);
+  bool read_state_from_buffer(uint8_t * data, size_t size);
+  void write_command_to_buffer(const uint8_t * data, size_t size);
+  bool read_command_from_buffer(uint8_t * data, size_t size);
+};
 
-  // The Zenoh subscriber callback.
-  static void on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg);
+template <typename StateCodec, typename CommandCodec>
+class ZenbeddedClient : public ZenbeddedClientBase
+{
+public:
+  using StateInitParams = typename StateCodec::InitParams;
+  using CommandInitParams = typename CommandCodec::InitParams;
+  using StateValue = typename StateCodec::Value;
+  using CommandValue = typename CommandCodec::Value;
 
-  // buffer read/write commands
-  void write_state_to_buffer(const zenbedded_state_t & state);
+  ZenbeddedClient()
+  {
+    static_assert(CheckCodec<StateCodec>::is_valid_state_codec, "Invalid StateCodec Type!");
+    static_assert(CheckCodec<CommandCodec>::is_valid_command_codec, "Invalid CommandCodec Type!");
+  }
 
-  bool read_state_from_buffer(zenbedded_state_t & state);
+  int init(
+    uint32_t control_freq, const StateInitParams & state_params = {},
+    const CommandInitParams & cmd_params = {})
+  {
+    if (initialized_)
+    {
+      return 0;
+    }
 
-  void write_command_to_buffer(const zenbedded_command_t & cmd);
+    reset_buffers();
 
-  bool read_command_from_buffer(zenbedded_command_t & cmd);
+    // Initialize state headers/codecs directly in double-buffer slots
+    StateCodec::init(state_ctx_, state_params, get_state_buffer_slot(0));
+    StateCodec::init(state_ctx_, state_params, get_state_buffer_slot(1));
+    size_t st_size = StateCodec::payload_size(state_ctx_);
 
-  void start_zenoh_task();
+    // Determine command payload size using scratchpad space
+    uint8_t cmd_layout_scratch[CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE];
+    CommandCodec::init(cmd_ctx_, cmd_params, cmd_layout_scratch);
+    size_t cmd_size = CommandCodec::payload_size(cmd_ctx_);
 
-  void stop_zenoh_task();
+    return init_base(control_freq, st_size, cmd_size);
+  }
+
+  void write_state(const StateValue & value)
+  {
+    if (!initialized_)
+    {
+      return;
+    }
+    int write_idx = 0;
+    uint8_t * buf = prepare_state_write_slot(write_idx);
+    StateCodec::write(state_ctx_, value, buf);
+    commit_state_write_slot(write_idx);
+  }
+
+  bool read_command(CommandValue & out)
+  {
+    if (!initialized_)
+    {
+      return false;
+    }
+    uint8_t tmp[CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE];
+    if (!read_latest_command_raw(tmp, cmd_payload_size_))
+    {
+      return false;
+    }
+    return CommandCodec::read(cmd_ctx_, tmp, cmd_payload_size_, out);
+  }
+
+private:
+  typename StateCodec::Ctx state_ctx_{};
+  typename CommandCodec::Ctx cmd_ctx_{};
 };
 
 #endif  // ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
