@@ -16,7 +16,7 @@ if(BUILD_TESTING)
   # serialization is portable C++ — compile it here against the real ROS 2
   # serializer to prove wire-format compatibility.
   add_library(zcdr_under_test STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../zenbedded_transport/src/serialization.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../zenbedded_transport/src/serialization.c
   )
   target_include_directories(zcdr_under_test PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../zenbedded_transport/include
