@@ -13,14 +13,14 @@ RUN apt-get update && apt-get install -y \
     python3-dev python3-tk python3-wheel xz-utils file \
     make gcc libsdl2-dev libmagic1 git \
     libudev-dev libusb-1.0-0-dev pkg-config \
-    
+
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
     ros-${ROS_DISTRO}-control-msgs \
     ros-${ROS_DISTRO}-rmw-zenoh-cpp \
     ros-${ROS_DISTRO}-rosidl-generator-c \
     ros-${ROS_DISTRO}-rosidl-generator-cpp \
-    
+
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python workspace dependencies
@@ -68,17 +68,10 @@ ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
 
-<<<<<<< HEAD
+
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
-=======
-RUN echo "source /opt/ros/lyrical/setup.bash" >> /root/.bashrc && \
->>>>>>> d5aaeab (ci: migrate to Lyrical, inject RCL Kconfig, and establish 1-Pub/1-Sub Twister baseline)
     echo "source /zephyr_ws/zephyr/zephyr-env.sh" >> /root/.bashrc
 
 RUN usermod -a -G dialout root
 
-<<<<<<< HEAD
 CMD ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && exec /bin/bash"]
-=======
-CMD ["/bin/bash", "-c", "source /opt/ros/lyrical/setup.bash && exec /bin/bash"]
->>>>>>> d5aaeab (ci: migrate to Lyrical, inject RCL Kconfig, and establish 1-Pub/1-Sub Twister baseline)
