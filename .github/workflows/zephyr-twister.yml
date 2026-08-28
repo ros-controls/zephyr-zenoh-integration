@@ -66,7 +66,6 @@ jobs:
         run: |
           source /ros2_ws/install/setup.bash
           export ZEPHYR_BASE=/zephyr_ws/zephyr
-          export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
             --platform native_sim/native/64 \

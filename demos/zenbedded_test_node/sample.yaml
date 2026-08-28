@@ -8,6 +8,7 @@ tests:
     platform_allow:
       - native_sim/native/64
       - esp32s3_devkitc/esp32s3/procpu
+
   sample.zenbedded.transport.asan:
     build_only: true
     platform_allow:
@@ -15,15 +16,11 @@ tests:
     extra_configs:
       - CONFIG_ASAN=y
       - CONFIG_UBSAN=y
-  # 3. The actual E2E Pytest Execution (Simulator Only)
+
   sample.zenbedded.transport.e2e:
+    harness: pytest
     platform_allow:
       - native_sim/native/64
-    harness: pytest
     harness_config:
       pytest_dut_scope: function
-      pytest_args:
-        - '-p'
-        - 'no:launch_testing_ros'
-        - '-p'
-        - 'no:launch_testing'
+      pytest_args: ["-o", "env=PYTEST_DISABLE_PLUGIN_AUTOLOAD=1"]
