@@ -1,22 +1,22 @@
-name: Jazzy Binary Build
+name: Lyrical Binary Build
 # description: 'Build & test all dependencies from released (binary) packages.'
 
 on:
   workflow_dispatch:
   pull_request:
-    paths: &jazzy_binary_paths
+    paths: &lyrical_binary_paths
       - '**.hpp'
       - '**.h'
       - '**.cpp'
       - '**.py'
       - '**.yaml'
-      - '.github/workflows/jazzy-binary-build.yml'
+      - '.github/workflows/lyrical-binary-build.yml'
       - '**/package.xml'
       - '**/CMakeLists.txt'
   push:
     branches:
       - master
-    paths: *jazzy_binary_paths
+    paths: *lyrical_binary_paths
 
 concurrency:
   # cancel previous runs of the same workflow, except for pushes on given branches
@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ROS_DISTRO: [jazzy]
+        ROS_DISTRO: [lyrical]
         ROS_REPO: [main, testing]
     with:
       ros_distro: ${{ matrix.ROS_DISTRO }}
