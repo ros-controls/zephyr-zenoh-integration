@@ -1,4 +1,4 @@
-name: Pre-Commit - Jazzy
+name: Pre-Commit - Lyrical
 
 on:
   workflow_dispatch:
@@ -15,4 +15,4 @@ jobs:
   pre-commit:
     uses: ros-controls/ros2_control_ci/.github/workflows/reusable-pre-commit.yml@master
     with:
-      ros_distro: jazzy
+      ros_distro: lyrical
