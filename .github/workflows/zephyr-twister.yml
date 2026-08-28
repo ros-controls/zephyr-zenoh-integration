@@ -42,7 +42,7 @@ jobs:
       - name: Build Colcon Packages
         shell: bash
         run: |
-          source /opt/ros/jazzy/setup.bash
+          source /opt/ros/lyrical/setup.bash
           ln -sfn "$GITHUB_WORKSPACE/zenbedded_schema" /ros2_ws/src/zenbedded_schema
           cd /ros2_ws
           rosdep update
@@ -66,6 +66,7 @@ jobs:
         run: |
           source /ros2_ws/install/setup.bash
           export ZEPHYR_BASE=/zephyr_ws/zephyr
+          export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
           "$ZEPHYR_BASE/scripts/twister" \
             --testsuite-root demos \
             --platform native_sim/native/64 \

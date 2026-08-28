@@ -9,6 +9,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/random/random.h>
+#include "zenbedded_transport/rihs_ledger.h"
 
 #if defined(CONFIG_ZENBEDDED_TRANSPORT_LOG_LEVEL)
 LOG_MODULE_REGISTER(zenoh_transport, CONFIG_ZENBEDDED_TRANSPORT_LOG_LEVEL);
@@ -24,7 +25,7 @@ static uint32_t last_keepalive_time_ms = 0;
 
 #define KEEPALIVE_INTERVAL_MS 5000
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
 #define MAX_PUBLISHERS 10
 #define MAX_SUBSCRIBERS 10
 #define KEYEXPR_MAX_LEN 512
@@ -55,6 +56,8 @@ struct zenbedded_sub_s
   zenbedded_recv_cb_t user_cb;
   void * user_data;
   char topic_keyexpr[KEYEXPR_MAX_LEN];
+  z_owned_liveliness_token_t lv_token;  // ADDED
+  char lv_keyexpr[KEYEXPR_MAX_LEN];
 };
 
 static struct zenbedded_pub_s pub_pool[MAX_PUBLISHERS] = {0};
@@ -83,7 +86,7 @@ static void internal_sub_handler(z_loaned_sample_t * sample, void * arg)
   z_bytes_reader_read(&reader, rx_buf, len);
   sub->user_cb(rx_buf, len, sub->user_data);
 }
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TIER_1
 
 int zenbedded_transport_init(
   uint32_t domain_id, const char * node_name, const char * mode, const char * locator)
@@ -112,7 +115,7 @@ int zenbedded_transport_init(
     return -1;
   }
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
   z_id_t zid = z_info_zid(z_session_loan(&z_session));
 
   snprintf(
@@ -144,7 +147,7 @@ void zenbedded_transport_destroy(void)
     return;
   }
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
   for (int i = 0; i < MAX_PUBLISHERS; i++)
   {
     if (pub_pool[i].in_use)
@@ -192,14 +195,16 @@ void zenbedded_transport_spin(void)
   }
 }
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
 zenbedded_pub_t zenbedded_transport_declare_publisher(
-  const char * topic_name, const char * type_name, const char * type_hash)
+  const char * topic_name, const char * type_name)
 {
   if (!is_initialized)
   {
     return NULL;
   }
+
+  const char * type_hash = zenbedded_get_rihs_hash(type_name);
 
   struct zenbedded_pub_s * pub = NULL;
   for (int i = 0; i < MAX_PUBLISHERS; i++)
@@ -295,13 +300,14 @@ int zenbedded_transport_publish(zenbedded_pub_t pub, const uint8_t * payload, si
 }
 
 zenbedded_sub_t zenbedded_transport_declare_subscriber(
-  const char * topic_name, const char * type_name, const char * type_hash,
-  zenbedded_recv_cb_t callback, void * user_data)
+  const char * topic_name, const char * type_name, zenbedded_recv_cb_t callback, void * user_data)
 {
   if (!is_initialized)
   {
     return NULL;
   }
+
+  const char * type_hash = zenbedded_get_rihs_hash(type_name);
 
   struct zenbedded_sub_s * sub = NULL;
   for (int i = 0; i < MAX_SUBSCRIBERS; i++)
@@ -325,7 +331,7 @@ zenbedded_sub_t zenbedded_transport_declare_subscriber(
   const char * clean_topic = (topic_name[0] == '/') ? topic_name + 1 : topic_name;
 
   snprintf(
-    sub->topic_keyexpr, KEYEXPR_MAX_LEN, "%u/%s/%s_/%s", current_domain_id, clean_topic, type_name,
+    sub->topic_keyexpr, KEYEXPR_MAX_LEN, "%u/%s/%s/%s", current_domain_id, clean_topic, type_name,
     type_hash);
 
   z_view_keyexpr_t ke;
@@ -344,7 +350,24 @@ zenbedded_sub_t zenbedded_transport_declare_subscriber(
     return NULL;
   }
 
+  z_id_t zid = z_info_zid(z_session_loan(&z_session));
+  snprintf(
+    sub->lv_keyexpr, KEYEXPR_MAX_LEN,
+    "@ros2_lv/%u/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/0/10/MS/%%/%%/%s/"
+    "%%%s/%s/%s/::,7:,:,:,,",
+    current_domain_id, zid.id[0], zid.id[1], zid.id[2], zid.id[3], zid.id[4], zid.id[5], zid.id[6],
+    zid.id[7], zid.id[8], zid.id[9], zid.id[10], zid.id[11], zid.id[12], zid.id[13], zid.id[14],
+    zid.id[15], current_node_name, clean_topic, type_name, type_hash);
+
+  LOG_DBG("[WIRE-TRACE] Transmitting Subscriber Liveliness Declaration:");
+  LOG_DBG("[WIRE-TRACE] %s", sub->lv_keyexpr);
+
+  z_view_keyexpr_t lv_ke;
+  z_view_keyexpr_from_str(&lv_ke, sub->lv_keyexpr);
+  z_liveliness_declare_token(
+    z_session_loan(&z_session), &sub->lv_token, z_view_keyexpr_loan(&lv_ke), NULL);
+
   LOG_INF("Declared Tier 1 Subscriber: %s", sub->topic_keyexpr);
   return sub;
 }
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TIER_1

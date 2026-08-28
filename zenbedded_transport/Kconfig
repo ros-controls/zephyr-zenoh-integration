@@ -1,15 +1,5 @@
 menu "Zenbedded Transport Configuration"
 
-config ZENOH_TRANSPORT_DOMAIN_ID
-    int "ROS 2 Domain ID"
-    default 0
-    depends on TIER_1
-
-config ZENOH_TRANSPORT_NODE_NAME
-    string "The ROS 2 node name assigned to the MCU"
-    default "zenbedded_mcu"
-    depends on TIER_1
-
 config ZENBEDDED_TRANSPORT_LOG_LEVEL
     int "Zenbedded Transport Log Level (0=OFF, 1=ERR, 2=WRN, 3=INF, 4=DBG)"
     default 2
@@ -18,11 +8,11 @@ config ZENBEDDED_TRANSPORT_LOG_LEVEL
       Set to 4 (Debug) to expose raw Zenoh-pico wire-traces and KeepAlive logs
       during transport layer debugging. Keeps the user console clean by default.
 
-choice ZENOH_TRANSPORT_TIER
+choice ZENBEDDED_TRANSPORT_TIER
     prompt "Integration Tier"
-    default TIER_1
+    default ZENBEDDED_TIER_1
 
-config TIER_1
+config ZENBEDDED_TIER_1
     bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
     select NETWORKING
     select NET_IPV4
@@ -39,7 +29,7 @@ config TIER_1
     select ZENOH_PICO_FRAGMENTATION
     select ZENOH_PICO_RELIABILITY
 
-config TIER_2
+config ZENBEDDED_TIER_2
     bool "Tier 2: High-Throughput Raw Numeric"
     select NETWORKING
     select NET_IPV4
@@ -52,7 +42,7 @@ config TIER_2
     select ZENOH_PICO_PUBLICATION
     select ZENOH_PICO_SUBSCRIPTION
 
-config TIER_3
+config ZENBEDDED_TIER_3
     bool "Tier 3: Bit-Optimal Packed"
 
 endchoice
@@ -61,7 +51,7 @@ endchoice
 # SYSTEM DEFAULTS
 # ==============================================================================
 
-if TIER_1
+if ZENBEDDED_TIER_1
 
 config NET_BUF_DATA_SIZE
     default 256
@@ -87,6 +77,6 @@ config MAIN_STACK_SIZE
 config SYSTEM_WORKQUEUE_STACK_SIZE
     default 8192
 
-endif # TIER_1
+endif # ZENBEDDED_TIER_1
 
 endmenu
