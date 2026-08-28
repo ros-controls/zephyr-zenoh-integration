@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
     make gcc libsdl2-dev libmagic1 git \
     libudev-dev libusb-1.0-0-dev pkg-config \
     ros-${ROS_DISTRO}-ros2-control \
-    ros-lyrical-ros2-controllers \
-    ros-lyrical-control-msgs \
-    ros-lyrical-rmw-zenoh-cpp \
-    ros-lyrical-rosidl-generator-c \
-    ros-lyrical-rosidl-generator-cpp \
+    ros-${ROS_DISTRO}-ros2-controllers \
+    ros-${ROS_DISTRO}-control-msgs \
+    ros-${ROS_DISTRO}-rmw-zenoh-cpp \
+    ros-${ROS_DISTRO}-rosidl-generator-c \
+    ros-${ROS_DISTRO}-rosidl-generator-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python workspace dependencies
@@ -66,9 +66,9 @@ ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
 
-RUN echo "source /opt/ros/lyrical/setup.bash" >> /root/.bashrc && \
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
     echo "source /zephyr_ws/zephyr/zephyr-env.sh" >> /root/.bashrc
 
 RUN usermod -a -G dialout root
 
-CMD ["/bin/bash", "-c", "source /opt/ros/lyrical/setup.bash && exec /bin/bash"]
+CMD ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && exec /bin/bash"]
