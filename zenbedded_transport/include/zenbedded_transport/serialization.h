@@ -24,7 +24,7 @@ extern "C"
 {
 #endif
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
 
   /**
    * @brief Context for JointState serialization and deserialization.
@@ -93,7 +93,7 @@ extern "C"
   bool zcdr_deserialize_joint_command(
     const zcdr_joint_command_ctx_t * ctx, const uint8_t * in_buffer, size_t buffer_size,
     int32_t * out_stamp_sec, uint32_t * out_stamp_nanosec, double * out_values);
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TIER_1
 
 #ifdef __cplusplus
 }

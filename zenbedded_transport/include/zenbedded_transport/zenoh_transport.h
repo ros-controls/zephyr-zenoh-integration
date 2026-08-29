@@ -36,7 +36,7 @@ extern "C"
    */
   void zenbedded_transport_spin(void);
 
-#ifdef CONFIG_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
 
   // Opaque handles. The user/RCL cannot see inside these structs.
   typedef struct zenbedded_pub_s * zenbedded_pub_t;
@@ -51,7 +51,7 @@ extern "C"
    * @return Opaque handle to the publisher pool entry, or NULL on failure.
    */
   zenbedded_pub_t zenbedded_transport_declare_publisher(
-    const char * topic_name, const char * type_name, const char * type_hash);
+    const char * topic_name, const char * type_name);
 
   /**
    * @brief Pushes a serialized CDR payload over the Zenoh transport.
@@ -80,10 +80,10 @@ extern "C"
    * @return Opaque handle to the subscriber pool entry, or NULL on failure.
    */
   zenbedded_sub_t zenbedded_transport_declare_subscriber(
-    const char * topic_name, const char * type_name, const char * type_hash,
-    zenbedded_recv_cb_t callback, void * user_data);
+    const char * topic_name, const char * type_name, zenbedded_recv_cb_t callback,
+    void * user_data);
 
-#endif  // CONFIG_TIER_1
+#endif  // CONFIG_ZENBEDDED_TIER_1
 
 #ifdef __cplusplus
 }

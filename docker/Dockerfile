@@ -66,6 +66,7 @@ ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
 
+
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
     echo "source /zephyr_ws/zephyr/zephyr-env.sh" >> /root/.bashrc
 

@@ -42,7 +42,7 @@ jobs:
       - name: Build Colcon Packages
         shell: bash
         run: |
-          source /opt/ros/jazzy/setup.bash
+          source /opt/ros/lyrical/setup.bash
           ln -sfn "$GITHUB_WORKSPACE/zenbedded_schema" /ros2_ws/src/zenbedded_schema
           cd /ros2_ws
           rosdep update

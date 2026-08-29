@@ -28,4 +28,35 @@ menu "Zenbedded RCL Configuration"
         string "The locator/address to connect to for zenoh-pico"
         default ""
 
+    config ZENBEDDED_RCL_DOMAIN_ID
+            int "ROS 2 Domain ID"
+            default 0
+            help
+              The domain ID for the ROS 2 graph.
+
+	config ZENBEDDED_RCL_NODE_NAME
+            string "The ROS 2 node name assigned to the MCU"
+            default "zenbedded_mcu"
+            help
+              The base node name used for liveliness tokens.
+
+    config ZENBEDDED_RCL_ZENOH_MODE
+            string "The mode for zenoh-pico peer/client"
+            default "client"
+
+	config ZENBEDDED_RCL_ZENOH_LOCATOR
+            string "The locator/address to connect to for zenoh-pico"
+            default "tcp/127.0.0.1:7447"
+
+    choice ZENBEDDED_RCL_QOS_RELIABILITY
+            prompt "Default QoS Reliability"
+            default ZENBEDDED_RCL_QOS_BEST_EFFORT
+
+    config ZENBEDDED_RCL_QOS_BEST_EFFORT
+            bool "Best Effort (Low Latency, UDP-style queueing)"
+
+   	config ZENBEDDED_RCL_QOS_RELIABLE
+            bool "Reliable (Guaranteed Delivery)"
+
+	endchoice
 endmenu

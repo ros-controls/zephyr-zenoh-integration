@@ -21,7 +21,7 @@ if(BUILD_TESTING)
   target_include_directories(zcdr_under_test PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../zenbedded_transport/include
   )
-  target_compile_definitions(zcdr_under_test PUBLIC CONFIG_TIER_1=1)
+  target_compile_definitions(zcdr_under_test PUBLIC CONFIG_ZENBEDDED_TIER_1=1)
 
   ament_add_gtest(test_cdr_conformance
     test/test_cdr_conformance.cpp
