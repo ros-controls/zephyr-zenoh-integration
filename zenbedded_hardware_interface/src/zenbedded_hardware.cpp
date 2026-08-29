@@ -23,7 +23,7 @@
 
 #include "hardware_interface/introspection.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "zenbedded_schema/interface_schema.hpp"
+#include "zenbedded_transport/interface_schema.hpp"
 
 namespace zenbedded
 {

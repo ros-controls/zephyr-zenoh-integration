@@ -1,4 +1,4 @@
-# Copyright 2026 kamal2730
+# Copyright 2026 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# yaml-cpp only has to be resolvable for consumers that link the
-# zenbedded_schema library. Consumers that just call
-# zenbedded_generate_header() may be cross-compiling, where the host's
-# yaml-cpp is deliberately out of reach, so don't insist on finding it.
 find_package(yaml-cpp QUIET)
 if(NOT yaml-cpp_FOUND)
   find_package(yaml_cpp_vendor QUIET)
@@ -25,11 +21,8 @@ endif()
 function(zenbedded_generate_header)
   cmake_parse_arguments(ARG "" "OUTPUT;YAML;TARGET" "" ${ARGN})
 
-  if(NOT ARG_YAML)
-    message(FATAL_ERROR "zenbedded_generate_header: YAML argument is required")
-  endif()
-  if(NOT ARG_OUTPUT)
-    message(FATAL_ERROR "zenbedded_generate_header: OUTPUT argument is required")
+  if(NOT ARG_YAML OR NOT ARG_OUTPUT)
+    message(FATAL_ERROR "zenbedded_generate_header requires YAML and OUTPUT arguments")
   endif()
 
   if(NOT IS_ABSOLUTE "${ARG_YAML}")
@@ -42,25 +35,18 @@ function(zenbedded_generate_header)
   get_filename_component(_gen_name "${ARG_OUTPUT}" NAME_WE)
   set(_target "zenbedded_generate_${_gen_name}")
 
-  get_filename_component(_prefix "${zenbedded_schema_DIR}/../../.." ABSOLUTE)
-  set(_gen_exe "${_prefix}/bin/generate_header")
-
-  if(NOT EXISTS "${_gen_exe}")
-    message(FATAL_ERROR
-      "zenbedded_generate_header: generate_header not found at '${_gen_exe}'"
-    )
-  endif()
+  # Find the Python script installed by zenbedded_transport
+  get_filename_component(_prefix "${zenbedded_transport_DIR}/../../.." ABSOLUTE)
+  set(_gen_script "${_prefix}/lib/zenbedded_transport/generate_tier2_payload.py")
 
   add_custom_command(
     OUTPUT "${ARG_OUTPUT}"
-    COMMAND "${_gen_exe}" --yaml "${ARG_YAML}" --output "${ARG_OUTPUT}"
+    COMMAND python3 "${_gen_script}" --yaml "${ARG_YAML}" --output "${ARG_OUTPUT}"
     DEPENDS "${ARG_YAML}"
     COMMENT "Generating interface header: ${ARG_OUTPUT}"
   )
 
-  add_custom_target("${_target}"
-    DEPENDS "${ARG_OUTPUT}"
-  )
+  add_custom_target("${_target}" DEPENDS "${ARG_OUTPUT}")
 
   if(ARG_TARGET)
     set("${ARG_TARGET}" "${_target}" PARENT_SCOPE)

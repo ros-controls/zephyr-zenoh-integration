@@ -13,7 +13,7 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(zenoh_cpp_vendor REQUIRED)
 find_package(realtime_tools REQUIRED)
-find_package(zenbedded_schema REQUIRED)
+find_package(zenbedded_transport REQUIRED)
 
 add_library(zenbedded_hardware_interface SHARED
   src/zenbedded_hardware.cpp
@@ -25,7 +25,7 @@ target_include_directories(zenbedded_hardware_interface PRIVATE
 
 target_link_libraries(zenbedded_hardware_interface
   PUBLIC
-    zenbedded_schema::zenbedded_schema
+    zenbedded_transport::zenbedded_transport
     hardware_interface::hardware_interface
     pluginlib::pluginlib
     rclcpp::rclcpp
@@ -73,7 +73,7 @@ if(BUILD_TESTING)
     test/test_interface_schema.cpp
   )
   target_link_libraries(test_interface_schema
-    zenbedded_schema::zenbedded_schema
+    zenbedded_transport::zenbedded_transport
   )
   target_include_directories(test_interface_schema PRIVATE
     include

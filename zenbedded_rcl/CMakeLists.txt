@@ -17,7 +17,7 @@ if(NOT EXISTS ${ZENBEDDED_SCHEMA_FILE_ABS})
             "ZENBEDDED_SCHEMA_FILE does not exist: ${ZENBEDDED_SCHEMA_FILE_ABS}")
 endif()
 
-find_package(zenbedded_schema REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+find_package(zenbedded_transport REQUIRED NO_CMAKE_FIND_ROOT_PATH)
 
 
 # Generate the header at build time

@@ -1,0 +1,7 @@
+state_interfaces:
+  test_motor:
+    position: float64
+    velocity: float64
+command_interfaces:
+  test_motor:
+    effort: float64
