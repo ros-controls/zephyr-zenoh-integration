@@ -13,14 +13,12 @@ RUN apt-get update && apt-get install -y \
     python3-dev python3-tk python3-wheel xz-utils file \
     make gcc libsdl2-dev libmagic1 git \
     libudev-dev libusb-1.0-0-dev pkg-config \
-
     ros-${ROS_DISTRO}-ros2-control \
     ros-${ROS_DISTRO}-ros2-controllers \
     ros-${ROS_DISTRO}-control-msgs \
     ros-${ROS_DISTRO}-rmw-zenoh-cpp \
     ros-${ROS_DISTRO}-rosidl-generator-c \
     ros-${ROS_DISTRO}-rosidl-generator-cpp \
-
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python workspace dependencies
