@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 project(zenbedded_hardware_interface)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -13,10 +13,11 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(zenoh_cpp_vendor REQUIRED)
 find_package(realtime_tools REQUIRED)
-find_package(zenbedded_transport REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 add_library(zenbedded_hardware_interface SHARED
   src/zenbedded_hardware.cpp
+  src/interface_schema.cpp
 )
 
 target_include_directories(zenbedded_hardware_interface PRIVATE
@@ -25,7 +26,7 @@ target_include_directories(zenbedded_hardware_interface PRIVATE
 
 target_link_libraries(zenbedded_hardware_interface
   PUBLIC
-    zenbedded_transport::zenbedded_transport
+    yaml-cpp::yaml-cpp
     hardware_interface::hardware_interface
     pluginlib::pluginlib
     rclcpp::rclcpp
@@ -41,17 +42,22 @@ install(DIRECTORY include/ DESTINATION include)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gmock REQUIRED)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
   # Generate test header from schema
   set(SCHEMA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/test/config/interface_schema.yaml")
   set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/zenbedded_hardware_interface/generated")
+  get_filename_component(WORKSPACE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+  set(PYTHON_GEN "${WORKSPACE_DIR}/zenbedded_transport/tools/generate_tier2_payload.py")
   file(MAKE_DIRECTORY ${GENERATED_DIR})
 
-  zenbedded_generate_header(
-    YAML ${SCHEMA_YAML}
+  add_custom_command(
     OUTPUT ${GENERATED_DIR}/interface_data.h
-    TARGET generate_interface_data
+    COMMAND Python3::Interpreter ${PYTHON_GEN} --yaml ${SCHEMA_YAML} --output ${GENERATED_DIR}/interface_data.h
+    DEPENDS ${SCHEMA_YAML} ${PYTHON_GEN}
+    COMMENT "Generating test header natively via Python"
   )
+  add_custom_target(generate_interface_data DEPENDS ${GENERATED_DIR}/interface_data.h)
 
   ament_add_gmock(test_zenbedded_hardware
     test/test_zenbedded_hardware.cpp
@@ -73,7 +79,7 @@ if(BUILD_TESTING)
     test/test_interface_schema.cpp
   )
   target_link_libraries(test_interface_schema
-    zenbedded_transport::zenbedded_transport
+    zenbedded_hardware_interface
   )
   target_include_directories(test_interface_schema PRIVATE
     include
