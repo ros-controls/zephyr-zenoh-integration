@@ -5,7 +5,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -26,7 +25,7 @@ target_include_directories(zenbedded_hardware_interface PRIVATE
 
 target_link_libraries(zenbedded_hardware_interface
   PUBLIC
-    yaml-cpp::yaml-cpp
+  yaml-cpp::yaml-cpp
     hardware_interface::hardware_interface
     pluginlib::pluginlib
     rclcpp::rclcpp
@@ -44,50 +43,43 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gmock REQUIRED)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-  # Generate test header from schema
   set(SCHEMA_YAML "${CMAKE_CURRENT_SOURCE_DIR}/test/config/interface_schema.yaml")
-  set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/zenbedded_hardware_interface/generated")
+  set(GEN_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/zenbedded_hardware_interface/generated")
   get_filename_component(WORKSPACE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
   set(PYTHON_GEN "${WORKSPACE_DIR}/zenbedded_transport/tools/generate_tier2_payload.py")
-  file(MAKE_DIRECTORY ${GENERATED_DIR})
+
+  file(MAKE_DIRECTORY ${GEN_INCLUDE_DIR})
 
   add_custom_command(
-    OUTPUT ${GENERATED_DIR}/interface_data.h
-    COMMAND Python3::Interpreter ${PYTHON_GEN} --yaml ${SCHEMA_YAML} --output ${GENERATED_DIR}/interface_data.h
+    OUTPUT ${GEN_INCLUDE_DIR}/interface_data.h
+    COMMAND Python3::Interpreter ${PYTHON_GEN} --yaml ${SCHEMA_YAML} --output ${GEN_INCLUDE_DIR}/interface_data.h
     DEPENDS ${SCHEMA_YAML} ${PYTHON_GEN}
     COMMENT "Generating test header natively via Python"
   )
-  add_custom_target(generate_interface_data DEPENDS ${GENERATED_DIR}/interface_data.h)
+  add_custom_target(generate_interface_data DEPENDS ${GEN_INCLUDE_DIR}/interface_data.h)
 
-  ament_add_gmock(test_zenbedded_hardware
-    test/test_zenbedded_hardware.cpp
-  )
+  ament_add_gmock(test_zenbedded_hardware test/test_zenbedded_hardware.cpp)
   target_link_libraries(test_zenbedded_hardware
     zenbedded_hardware_interface
     hardware_interface::hardware_interface
     zenohcxx::zenohc
   )
+
+  ament_add_gmock(test_interface_schema test/test_interface_schema.cpp)
+    target_link_libraries(test_interface_schema zenbedded_hardware_interface)
+    target_include_directories(test_interface_schema PRIVATE
+      include
+      ${CMAKE_CURRENT_BINARY_DIR}/include
+    )
+    target_compile_definitions(test_interface_schema PRIVATE TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/config")
+    add_dependencies(test_interface_schema generate_interface_data)
+
   target_include_directories(test_zenbedded_hardware PRIVATE
     include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
   )
-  target_compile_definitions(test_zenbedded_hardware PRIVATE
-    TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/config"
-  )
-  add_dependencies(test_zenbedded_hardware ${generate_interface_data})
-
-  ament_add_gmock(test_interface_schema
-    test/test_interface_schema.cpp
-  )
-  target_link_libraries(test_interface_schema
-    zenbedded_hardware_interface
-  )
-  target_include_directories(test_interface_schema PRIVATE
-    include
-  )
-  target_compile_definitions(test_interface_schema PRIVATE
-    TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config"
-  )
-  add_dependencies(test_interface_schema ${generate_interface_data})
+  target_compile_definitions(test_zenbedded_hardware PRIVATE TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/config")
+  add_dependencies(test_zenbedded_hardware generate_interface_data)
 endif()
 
 ament_package()

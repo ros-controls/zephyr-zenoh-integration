@@ -3,16 +3,13 @@ cmake_minimum_required(VERSION 3.20.0)
 zephyr_library()
 zephyr_include_directories(include)
 
-# 1. Base Zenoh transport pipe (Shared by all Tiers)
 zephyr_library_sources(src/zenoh_transport.c)
 zephyr_library_compile_definitions(Z_CONFIG_SOCKET_TIMEOUT=1)
 
-# 2. Tier 1: Compile ZCDR serialization if enabled
 if(CONFIG_ZENBEDDED_TIER_1)
   zephyr_library_sources(src/serialization.c)
 endif()
 
-# 3. Tier 2: Generate the Struct if enabled
 if(CONFIG_ZENBEDDED_TIER_2)
   set(GEN_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_tier2_payload.py")
 
@@ -27,7 +24,7 @@ if(CONFIG_ZENBEDDED_TIER_2)
   endif()
 
   if(SCHEMA_FILE AND EXISTS "${SCHEMA_FILE}")
-    set(GEN_OUTPUT_DIR "${ZEPHYR_BINARY_DIR}/include/generated")
+    set(GEN_OUTPUT_DIR "${ZEPHYR_BINARY_DIR}/include/zenbedded_transport/generated")
     set(GEN_HEADER "${GEN_OUTPUT_DIR}/interface_data.h")
 
     add_custom_command(

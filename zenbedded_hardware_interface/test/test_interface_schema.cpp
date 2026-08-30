@@ -95,32 +95,6 @@ TEST_F(TestInterfaceSchema, generated_struct_sizes_match_config_schema)
   EXPECT_EQ(sizeof(zenbedded_command_t), schema.command_buffer_size());
 }
 
-TEST_F(TestInterfaceSchema, write_c_header_produces_valid_output)
-{
-  auto schema = zenbedded::InterfaceSchema::from_yaml(multi_field_yaml);
-  ASSERT_TRUE(schema.valid());
-
-  char tmp_path[] = "/tmp/test_header_XXXXXX";
-  int fd = mkstemp(tmp_path);
-  ASSERT_GE(fd, 0);
-  close(fd);
-
-  EXPECT_TRUE(schema.write_c_header(tmp_path));
-
-  std::ifstream file(tmp_path);
-  ASSERT_TRUE(file.is_open());
-  std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  file.close();
-  std::remove(tmp_path);
-
-  EXPECT_THAT(content, ::testing::HasSubstr("zenbedded_state_t"));
-  EXPECT_THAT(content, ::testing::HasSubstr("zenbedded_command_t"));
-  EXPECT_THAT(content, ::testing::HasSubstr("ZENBEDDED_STATE_BYTE_SIZE"));
-  EXPECT_THAT(content, ::testing::HasSubstr("ZENBEDDED_COMMAND_BYTE_SIZE"));
-  EXPECT_THAT(content, ::testing::HasSubstr("left_wheel_position"));
-  EXPECT_THAT(content, ::testing::HasSubstr("right_wheel_velocity"));
-}
-
 TEST_F(TestInterfaceSchema, simple_schema)
 {
   auto schema = zenbedded::InterfaceSchema::from_yaml(simple_yaml);

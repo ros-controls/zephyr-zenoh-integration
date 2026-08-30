@@ -39,7 +39,6 @@ def generate_header(yaml_path, output_path):
     state_fields = []
     command_fields = []
 
-    # Parse state interfaces
     for comp, fields in data.get("state_interfaces", {}).items():
         for field, ftype in fields.items():
             if ftype not in TYPE_MAP:
@@ -49,7 +48,6 @@ def generate_header(yaml_path, output_path):
             state_fields.append(f"  {ctype} {comp}_{field};")
             state_size += size
 
-    # Parse command interfaces
     for comp, fields in data.get("command_interfaces", {}).items():
         for field, ftype in fields.items():
             if ftype not in TYPE_MAP:
@@ -59,7 +57,6 @@ def generate_header(yaml_path, output_path):
             command_fields.append(f"  {ctype} {comp}_{field};")
             command_size += size
 
-    # Generate C-Header String
     header = f"""#ifndef ZENBEDDED_SCHEMA__GENERATED__INTERFACE_DATA_H_
 #define ZENBEDDED_SCHEMA__GENERATED__INTERFACE_DATA_H_
 
@@ -82,7 +79,6 @@ typedef struct
 
 #endif  // ZENBEDDED_SCHEMA__GENERATED__INTERFACE_DATA_H_
 """
-    # Ensure directory exists
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     with open(output_path, "w") as f:

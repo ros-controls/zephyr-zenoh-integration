@@ -56,7 +56,7 @@ struct zenbedded_sub_s
   zenbedded_recv_cb_t user_cb;
   void * user_data;
   char topic_keyexpr[KEYEXPR_MAX_LEN];
-  z_owned_liveliness_token_t lv_token;  // ADDED
+  z_owned_liveliness_token_t lv_token;
   char lv_keyexpr[KEYEXPR_MAX_LEN];
 };
 
@@ -224,7 +224,6 @@ zenbedded_pub_t zenbedded_transport_declare_publisher(
 
   const char * clean_topic = (topic_name[0] == '/') ? topic_name + 1 : topic_name;
 
-  // 1. Data Topic Key Expression
   snprintf(
     pub->topic_keyexpr, KEYEXPR_MAX_LEN, "%u/%s/%s/%s", current_domain_id, clean_topic, type_name,
     type_hash);
@@ -241,12 +240,10 @@ zenbedded_pub_t zenbedded_transport_declare_publisher(
     return NULL;
   }
 
-  // 2. Generate Data GID Attachment
   pub->attachment.sequence_number = 0;
   pub->attachment.gid_length = RMW_GID_SIZE;
   sys_rand_get(pub->attachment.gid, RMW_GID_SIZE);
 
-  // 3. Liveliness Key Expression
   z_id_t zid = z_info_zid(z_session_loan(&z_session));
   snprintf(
     pub->lv_keyexpr, KEYEXPR_MAX_LEN,
