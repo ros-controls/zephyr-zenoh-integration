@@ -16,10 +16,8 @@ endif()
 if(CONFIG_ZENBEDDED_TIER_2)
   set(GEN_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_tier2_payload.py")
 
-  # 1. Check if user configured a custom schema path in prj.conf
   if(DEFINED CONFIG_ZENBEDDED_TIER2_SCHEMA_PATH AND NOT "${CONFIG_ZENBEDDED_TIER2_SCHEMA_PATH}" STREQUAL "")
     set(SCHEMA_FILE "${APPLICATION_SOURCE_DIR}/${CONFIG_ZENBEDDED_TIER2_SCHEMA_PATH}")
-  # 2. Check standard conventions
   elseif(EXISTS "${APPLICATION_SOURCE_DIR}/config/interface_schema.yaml")
     set(SCHEMA_FILE "${APPLICATION_SOURCE_DIR}/config/interface_schema.yaml")
   elseif(EXISTS "${APPLICATION_SOURCE_DIR}/interface_schema.yaml")

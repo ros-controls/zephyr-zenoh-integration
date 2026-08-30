@@ -4,11 +4,10 @@
   <name>zenbedded_tier2_test_ros</name>
   <version>0.0.1</version>
   <description>Tier 2 Transport Verification Node</description>
-  <maintainer email="shahazad@example.com">Shahazad</maintainer>
+  <maintainer email="Shahazad.abdulla.engineer@gmail.com">Shahazad</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <depend>zenbedded_transport</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
