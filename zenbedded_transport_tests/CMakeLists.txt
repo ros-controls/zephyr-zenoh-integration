@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 project(zenbedded_transport_tests)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -12,9 +12,6 @@ if(BUILD_TESTING)
   find_package(rclcpp REQUIRED)
   find_package(sensor_msgs REQUIRED)
 
-  # The transport module is a Zephyr module (COLCON_IGNOREd), but its CDR
-  # serialization is portable C++ — compile it here against the real ROS 2
-  # serializer to prove wire-format compatibility.
   add_library(zcdr_under_test STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../zenbedded_transport/src/serialization.c
   )

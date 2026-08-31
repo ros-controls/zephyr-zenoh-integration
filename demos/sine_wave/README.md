@@ -13,7 +13,7 @@ Both sides are generated from the same `interface_schema.yaml`
 
 ## Prerequisites
 
-- A built and installed `zenbedded_schema` (ament_cmake package)
+- A built and installed `zenbedded_transport` (ament_cmake package)
 - A built `zenbedded_hardware_interface`
 - A Zephyr workspace with `zenbedded_rcl` set up as a module
 - An ESP32-S3 board (or adjust `CONFIG_WIFI_ESP32` / board target for a
@@ -28,7 +28,7 @@ cd <ros_ws>
 # copy packages or use "ln -s" symlink into the workspace
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
-colcon build --packages-select zenbedded_hardware_interface zenbedded_schema sine_wave_ros
+colcon build --packages-select zenbedded_hardware_interface zenbedded_transport sine_wave_ros
 source install/setup.bash
 ros2 launch zenbedded_sine_wave sine_wave.launch.py
 ```

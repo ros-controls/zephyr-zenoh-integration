@@ -6,7 +6,6 @@ on:
     paths: &zephyr_twister_paths
       - 'demos/**'
       - 'zenbedded_rcl/**'
-      - 'zenbedded_schema/**'
       - 'zenbedded_transport/**'
       - '.github/workflows/zephyr-twister.yml'
   push:
@@ -43,7 +42,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/lyrical/setup.bash
-          ln -sfn "$GITHUB_WORKSPACE/zenbedded_schema" /ros2_ws/src/zenbedded_schema
+          ln -sfn "$GITHUB_WORKSPACE/zenbedded_transport" /ros2_ws/src/zenbedded_transport
           cd /ros2_ws
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y

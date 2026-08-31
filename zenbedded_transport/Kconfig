@@ -48,6 +48,19 @@ config ZENBEDDED_TIER_3
 endchoice
 
 # ==============================================================================
+# TIER 2 CONFIGURATION
+# ==============================================================================
+
+config ZENBEDDED_TIER2_SCHEMA_PATH
+    string "Path to Tier 2 YAML Schema"
+    depends on ZENBEDDED_TIER_2
+    default "config/interface_schema.yaml"
+    help
+      Path to the YAML schema file relative to the application's source directory.
+      The build system will read this file to auto-generate the C-header struct.
+      Fallback default is interface_schema.yaml in the app root.
+
+# ==============================================================================
 # SYSTEM DEFAULTS
 # ==============================================================================
 
