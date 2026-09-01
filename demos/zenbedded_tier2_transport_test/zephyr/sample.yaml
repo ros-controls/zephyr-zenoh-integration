@@ -1,0 +1,9 @@
+sample:
+  name: Zenbedded Tier 2 Transport test
+common:
+  build_only: true
+  tags: zenbedded_transport
+tests:
+  sample.zenbedded.tier2_transport_test:
+    platform_allow:
+      - esp32s3_devkitc/esp32s3/procpu

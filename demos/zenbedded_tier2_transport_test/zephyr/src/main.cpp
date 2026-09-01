@@ -16,7 +16,7 @@
 #include <zephyr/logging/log.h>
 
 // This header MUST be generated at build-time
-#include "interface_data.h"  // NOLINT
+#include "zenbedded_transport/generated/interface_data.h"  // NOLINT
 #include "zenbedded_transport/zenoh_transport.h"
 
 LOG_MODULE_REGISTER(tier2_test, LOG_LEVEL_INF);
@@ -30,10 +30,11 @@ int main(void)
   my_state.test_motor_velocity = 0.55;
 
   // Simulate passing the raw bytes to the dumb transport pipe
-  uint8_t * raw_bytes = reinterpret_cast<uint8_t *>(&my_state);
+  const uint8_t * raw_bytes = reinterpret_cast<const uint8_t *>(&my_state);
   size_t size = sizeof(zenbedded_state_t);
 
   LOG_INF("Packed Tier 2 Struct. Total bytes to send: %zu", size);
+  LOG_HEXDUMP_INF(raw_bytes, size, "Packed Tier 2 struct");
 
   while (1)
   {
