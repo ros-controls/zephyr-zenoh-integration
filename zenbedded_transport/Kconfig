@@ -22,6 +22,7 @@ config ZENBEDDED_TIER_1
     select POSIX_API
     select CBPRINTF_FP_SUPPORT
     select ZENOH_PICO
+    select ZENOH_PICO_MULTI_THREAD
     select ZENOH_PICO_LINK_UDP_UNICAST
     select ZENOH_PICO_LINK_TCP
     select ZENOH_PICO_PUBLICATION
@@ -33,12 +34,10 @@ config ZENBEDDED_TIER_2
     bool "Tier 2: High-Throughput Raw Numeric"
     select NETWORKING
     select NET_IPV4
-    select NET_UDP
-    select NET_TCP
     select NET_SOCKETS
     select POSIX_API
     select ZENOH_PICO
-    select ZENOH_PICO_LINK_TCP
+    select ZENOH_PICO_MULTI_THREAD
     select ZENOH_PICO_PUBLICATION
     select ZENOH_PICO_SUBSCRIPTION
 
@@ -46,6 +45,81 @@ config ZENBEDDED_TIER_3
     bool "Tier 3: Bit-Optimal Packed"
 
 endchoice
+
+# ==============================================================================
+# ZENOH MODE & NETWORK CONFIG
+# ==============================================================================
+
+choice ZENBEDDED_MODE
+    prompt "Zenoh Node Mode"
+    default ZENBEDDED_MODE_CLIENT
+
+config ZENBEDDED_MODE_CLIENT
+    bool "Client Mode (Default, Lightweight)"
+    help
+      The MCU connects to a listening Host PC (Peer) or Router.
+      This is the fastest, lowest-RAM option. Highly recommended.
+
+config ZENBEDDED_MODE_PEER
+    bool "Peer Mode (Listener / P2P)"
+    help
+      The MCU acts as a Peer (Listener/Router).
+      WARNING: Requires more RAM for routing tables.
+
+endchoice
+
+config ZENBEDDED_ZENOH_MODE
+    string
+    default "client" if ZENBEDDED_MODE_CLIENT
+    default "peer" if ZENBEDDED_MODE_PEER
+
+choice ZENBEDDED_RELIABILITY
+    prompt "Tier 2 Transport Protocol"
+    default ZENBEDDED_QOS_BEST_EFFORT
+
+config ZENBEDDED_QOS_BEST_EFFORT
+    bool "Best Effort (UDP)"
+    select NET_UDP
+    select ZENOH_PICO_LINK_UDP_UNICAST if ZENBEDDED_MODE_CLIENT
+    select ZENOH_PICO_LINK_UDP_MULTICAST if ZENBEDDED_MODE_PEER
+    help
+      Uses UDP transport.
+      If Client: Uses UDP Unicast.
+      If Peer: Uses UDP Multicast.
+      Note: Default enforces Zenoh Best-Effort & Congestion Drop.
+
+config ZENBEDDED_QOS_RELIABLE
+    bool "Reliable (TCP)"
+    select NET_TCP
+    select ZENOH_PICO_LINK_TCP
+    help
+      Uses TCP transport.
+      Valid for both Client (Unicast) and Peer (P2P Unicast).
+      Provides OS-level retries. Default enforces Congestion Drop to protect 500Hz loops.
+
+endchoice
+
+config ZENBEDDED_ZENOH_IP_PORT
+    string "Zenoh Target (IP:Port)"
+    default "127.0.0.1:7447"
+    help
+      For Client: Enter Host PC IP (e.g., 192.168.1.50:7447).
+      For TCP Peer: Enter Listener IP (e.g., 0.0.0.0:7447).
+      For UDP Peer: Enter Multicast IP (e.g., 224.0.0.123:7447).
+      The transport layer will automatically prepend "udp/" or "tcp/".
+
+config ZENBEDDED_DOMAIN_ID
+    int "ROS 2 Domain ID"
+    default 0
+    help
+      The network domain ID. Must match the Host PC's ROS_DOMAIN_ID.
+      Isolates different robot systems on the same network.
+
+config ZENBEDDED_NODE_NAME
+    string "Zenbedded Node Name"
+    default "zenbedded_node"
+    help
+      The unique identifier for this specific microcontroller on the network.
 
 # ==============================================================================
 # TIER 2 CONFIGURATION
@@ -58,13 +132,10 @@ config ZENBEDDED_TIER2_SCHEMA_PATH
     help
       Path to the YAML schema file relative to the application's source directory.
       The build system will read this file to auto-generate the C-header struct.
-      Fallback default is interface_schema.yaml in the app root.
 
 # ==============================================================================
 # SYSTEM DEFAULTS
 # ==============================================================================
-
-if ZENBEDDED_TIER_1
 
 config NET_BUF_DATA_SIZE
     default 256
@@ -89,7 +160,5 @@ config MAIN_STACK_SIZE
 
 config SYSTEM_WORKQUEUE_STACK_SIZE
     default 8192
-
-endif # ZENBEDDED_TIER_1
 
 endmenu

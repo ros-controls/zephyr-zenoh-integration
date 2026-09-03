@@ -83,12 +83,16 @@ def test_ros2_commands_mcu(zenoh_router, dut: DeviceAdapter):
 
         time.sleep(0.5)
 
-        node.pub_cmd_1.publish(cmd1)
+        timer = node.create_timer(0.1, lambda: node.pub_cmd_1.publish(cmd1))
 
-        dut.readlines_until(
-            regex=r"\[SUB 1\] /joint_commands RX -> stepper: 45.00 \| pendulum: -90.50",
-            timeout=TIMEOUT_SEC,
-        )
+        try:
+            dut.readlines_until(
+                regex=r"\[SUB 1\] Rate: \d+ Hz \| stepper: 45\.00 \| pendulum: -90\.50",
+                timeout=TIMEOUT_SEC,
+            )
+        finally:
+            node.destroy_timer(timer)
+
     finally:
         rclpy.shutdown()
         executor_thread.join(timeout=1.0)
