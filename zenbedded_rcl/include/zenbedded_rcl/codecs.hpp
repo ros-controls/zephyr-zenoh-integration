@@ -15,10 +15,8 @@
 #ifndef ZENBEDDED_RCL__CODECS_HPP_
 #define ZENBEDDED_RCL__CODECS_HPP_
 
-#include <zephyr/kernel.h>
-#include <cstddef>
-#include <cstring>
-#include <type_traits>
+#include <stddef.h>
+#include <string.h>
 
 #ifdef CONFIG_ZENBEDDED_TIER_1
 #include <zenbedded_transport/serialization.h>
@@ -54,24 +52,38 @@
 // It Could have both read and write functions so its used for state/command codecs
 // -------------------------------------------------------------------------------------------
 
-// This class is an helper to check if a Codec is a valid Codec Type
+// This class is a helper to check if a Codec is a valid Codec Type
 template <typename Codec>
 struct CheckCodec
 {
+private:
+  struct true_type
+  {
+    static constexpr bool value = true;
+  };
+  struct false_type
+  {
+    static constexpr bool value = false;
+  };
+
+  template <typename U>
+  static U declval_helper() noexcept;
+
   // clang-format off
   template <typename C>
-  static auto check_state_codec(int) -> decltype(C::init(std::declval<typename C::Ctx &>(), std::declval<const typename C::InitParams &>(), static_cast<uint8_t *>(nullptr)), C::payload_size(std::declval<const typename C::Ctx &>()), C::write(std::declval<const typename C::Ctx &>(), std::declval<const typename C::Value &>(), static_cast<uint8_t *>(nullptr)), std::true_type{}); // NOLINT
+  static auto check_state_codec(int) -> decltype(C::init(declval_helper<typename C::Ctx &>(), declval_helper<const typename C::InitParams &>(), static_cast<uint8_t *>(nullptr)), C::payload_size(declval_helper<const typename C::Ctx &>()), C::write(declval_helper<const typename C::Ctx &>(), declval_helper<const typename C::Value &>(), static_cast<uint8_t *>(nullptr)), true_type{}); // NOLINT
 
   template <typename C>
-  static auto check_command_codec(int) -> decltype(C::init(std::declval<typename C::Ctx &>(), std::declval<const typename C::InitParams &>(), static_cast<uint8_t *>(nullptr)), C::payload_size(std::declval<const typename C::Ctx &>()), C::read(std::declval<const typename C::Ctx &>(), static_cast<const uint8_t *>(nullptr), std::size_t{0}, std::declval<typename C::Value &>()), std::true_type{}); // NOLINT
+  static auto check_command_codec(int) -> decltype(C::init(declval_helper<typename C::Ctx &>(), declval_helper<const typename C::InitParams &>(), static_cast<uint8_t *>(nullptr)), C::payload_size(declval_helper<const typename C::Ctx &>()), C::read(declval_helper<const typename C::Ctx &>(), static_cast<const uint8_t *>(nullptr), size_t{0}, declval_helper<typename C::Value &>()), true_type{}); // NOLINT
   // clang-format on
 
   template <typename>
-  static std::false_type check_state_codec(...);
+  static false_type check_state_codec(...);
 
   template <typename>
-  static std::false_type check_command_codec(...);
+  static false_type check_command_codec(...);
 
+public:
   static constexpr bool is_valid_state_codec = decltype(check_state_codec<Codec>(0))::value;
   static constexpr bool is_valid_command_codec = decltype(check_command_codec<Codec>(0))::value;
 };

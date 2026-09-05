@@ -15,7 +15,6 @@
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include <zenbedded_transport/zenoh_transport.h>
 #include <zephyr/logging/log.h>
-#include <cerrno>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 

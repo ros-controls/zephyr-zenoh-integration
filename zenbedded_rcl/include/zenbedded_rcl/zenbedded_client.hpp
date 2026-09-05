@@ -15,10 +15,9 @@
 #ifndef ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 #define ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 
+#include <stddef.h>
+#include <stdint.h>
 #include <zephyr/kernel.h>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 
 #include "zenbedded_rcl/codecs.hpp"
 #include "zenbedded_transport/zenoh_transport.h"
