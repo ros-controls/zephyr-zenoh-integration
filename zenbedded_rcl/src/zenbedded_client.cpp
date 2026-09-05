@@ -13,34 +13,16 @@
 // limitations under the License.
 
 #include "zenbedded_rcl/zenbedded_client.hpp"
-#include <zenoh-pico.h>
-#include <zephyr/kernel.h>
+#include <zenbedded_transport/zenoh_transport.h>
 #include <zephyr/logging/log.h>
+#include <cerrno>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
-// Static pointer to the client instance for the callback
-static ZenbeddedClient * zrcl_instance = nullptr;
+ZenbeddedClientBase::ZenbeddedClientBase() { reset_buffers(); }
 
-void ZenbeddedClient::reset_buffers()
-{
-  // reset atomic variables
-  atomic_set(&state_buffer_active_idx_, 0);
-  atomic_set(&cmd_buffer_active_idx_, 0);
-
-  atomic_set(&state_buffer_version_[0], 0);
-  atomic_set(&state_buffer_version_[1], 0);
-  atomic_set(&cmd_buffer_version_[0], 0);
-  atomic_set(&cmd_buffer_version_[1], 0);
-
-  // Clear buffers
-  memset(state_buffer_, 0, sizeof(state_buffer_));
-  memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
-  memset(&user_state_buffer_, 0, sizeof(user_state_buffer_));
-  memset(&user_command_buffer_, 0, sizeof(user_command_buffer_));
-}
-
-int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint32_t control_freq)
+int ZenbeddedClientBase::init_base(
+  uint32_t control_freq, size_t state_payload_size, size_t cmd_payload_size)
 {
   if (initialized_)
   {
@@ -48,212 +30,89 @@ int ZenbeddedClient::init(const char * state_topic, const char * cmd_topic, uint
     return 0;
   }
 
-  if (!state_topic || !cmd_topic)
+  state_payload_size_ = state_payload_size;
+  if (state_payload_size_ > CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE)
   {
-    LOG_ERR("State and command topics cannot be NULL");
-    return -EINVAL;
+    LOG_ERR(
+      "State payload (%zu) exceeds CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE (%d)",
+      state_payload_size_, CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE);
+    return -ENOMEM;
   }
 
-  state_topic_ = state_topic;
-  cmd_topic_ = cmd_topic;
-
-  reset_buffers();
-
-  // Zenoh Config
-  z_owned_config_t config;
-  z_config_default(&config);
-  zp_config_insert(z_config_loan_mut(&config), Z_CONFIG_MODE_KEY, CONFIG_ZENBEDDED_RCL_ZENOH_MODE);
-
-  if (strcmp(CONFIG_ZENBEDDED_RCL_ZENOH_LOCATOR, "") != 0)
+  cmd_payload_size_ = cmd_payload_size;
+  if (cmd_payload_size_ > CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE)
   {
-    zp_config_insert(
-      z_loan_mut(config),
-      (strcmp(CONFIG_ZENBEDDED_RCL_ZENOH_MODE, "client") == 0) ? Z_CONFIG_CONNECT_KEY
-                                                               : Z_CONFIG_LISTEN_KEY,
-      CONFIG_ZENBEDDED_RCL_ZENOH_LOCATOR);
+    LOG_ERR(
+      "Command payload (%zu) exceeds CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE (%d)", cmd_payload_size_,
+      CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE);
+    return -ENOMEM;
   }
 
-  z_result_t ret = z_open(&z_session_, z_move(config), nullptr);
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to open Zenoh session");
-    return ret;
-  }
-
-  LOG_INF("opened session");
-  start_zenoh_task();
-
-  // Declare publisher for state (using configured topic)
-  z_view_keyexpr_t ke_state;
-  if (z_view_keyexpr_from_str(&ke_state, state_topic) < 0)
-  {
-    LOG_ERR("Invalid state topic: %s", state_topic);
-    stop_zenoh_task();
-    z_close(z_session_loan_mut(&z_session_), nullptr);
-    return -EINVAL;
-  }
   if (
-    z_declare_publisher(z_session_loan(&z_session_), &z_state_pub_, z_loan(ke_state), nullptr) < 0)
+    zenbedded_transport_init(
+      CONFIG_ZENBEDDED_DOMAIN_ID, CONFIG_ZENBEDDED_NODE_NAME, CONFIG_ZENBEDDED_ZENOH_MODE,
+      CONFIG_ZENBEDDED_ZENOH_IP_PORT) != 0)
   {
-    LOG_ERR("Failed to declare state publisher on topic: %s", state_topic);
-    stop_zenoh_task();
-    z_close(z_session_loan_mut(&z_session_), nullptr);
+    LOG_ERR("Failed to initialize zenbedded transport");
     return -EIO;
   }
 
-  // subscriber for commands (using configured topic)
-  z_owned_closure_sample_t callback;
-  z_closure(&callback, on_zenoh_command_cb, nullptr, this);
-  z_view_keyexpr_t ke_cmd;
-  if (z_view_keyexpr_from_str(&ke_cmd, cmd_topic) < 0)
+  const char *state_type = nullptr, *cmd_type = nullptr;
+#ifdef CONFIG_ZENBEDDED_TIER_1
+  state_type = CONFIG_ZENBEDDED_RCL_STATE_MSG_TYPE_STRING;
+  cmd_type = CONFIG_ZENBEDDED_RCL_CMD_MSG_TYPE_STRING;
+#endif
+
+  pub_ = zenbedded_transport_declare_publisher(CONFIG_ZENBEDDED_RCL_PUB_TOPIC, state_type);
+  if (pub_ == nullptr)
   {
-    LOG_ERR("Invalid command topic: %s", cmd_topic);
-    z_undeclare_publisher(z_publisher_move(&z_state_pub_));
-    stop_zenoh_task();
-    z_close(z_session_loan_mut(&z_session_), nullptr);
-    return -EINVAL;
+    LOG_ERR("Failed to declare publisher");
+    return -EIO;
   }
-  if (
-    z_declare_subscriber(
-      z_session_loan(&z_session_), &z_cmd_sub_, z_loan(ke_cmd), z_move(callback), nullptr) < 0)
+  sub_ = zenbedded_transport_declare_subscriber(
+    CONFIG_ZENBEDDED_RCL_SUB_TOPIC, cmd_type, on_transport_cmd_cb, this);
+  if (sub_ == nullptr)
   {
-    LOG_ERR("Failed to declare command subscriber on topic: %s", cmd_topic);
-    z_undeclare_publisher(z_publisher_move(&z_state_pub_));
-    stop_zenoh_task();
-    z_close(z_session_loan_mut(&z_session_), nullptr);
+    LOG_ERR("Failed to declare subscriber");
     return -EIO;
   }
 
   initialized_ = true;
   control_freq_ = control_freq;
-  zrcl_instance = this;
 
-  LOG_INF("ZenbeddedClient initialized: state='%s', cmd='%s'", state_topic, cmd_topic);
-  start_thread(control_freq);
-  return 0;
+  LOG_INF(
+    "ZenbeddedClient initialized (state_size=%zuB, cmd_size=%zuB)", state_payload_size_,
+    cmd_payload_size_);
+
+  return start_thread(control_freq);
 }
 
-void ZenbeddedClient::destroy()
+void ZenbeddedClientBase::destroy()
 {
   if (!initialized_)
   {
     return;
   }
   stop_thread();
-  z_undeclare_subscriber(z_subscriber_move(&z_cmd_sub_));
-  z_undeclare_publisher(z_publisher_move(&z_state_pub_));
-  z_close(z_session_loan_mut(&z_session_), nullptr);
-
-  z_session_drop(z_session_move(&z_session_));
+  zenbedded_transport_destroy();
 
   initialized_ = false;
-  zrcl_instance = nullptr;
-
   LOG_INF("ZenbeddedClient deinitialized");
 }
 
-void ZenbeddedClient::on_zenoh_command_cb(z_loaned_sample_t * sample, void * arg)
+uint8_t * ZenbeddedClientBase::get_state_buffer_slot(size_t slot_idx)
 {
-  zenbedded_command_t cmd;
-  z_bytes_reader_t reader = z_bytes_get_reader(z_sample_payload(sample));
-  size_t bytes_copied =
-    z_bytes_reader_read(&reader, reinterpret_cast<uint8_t *>(&cmd), sizeof(zenbedded_command_t));
-
-  if (bytes_copied != sizeof(zenbedded_command_t))
-  {
-    LOG_WRN("Invalid command size: %zu, expected %zu", bytes_copied, sizeof(zenbedded_command_t));
-    return;
-  }
-
-  auto * self = static_cast<ZenbeddedClient *>(arg);
-  self->write_command_to_buffer(cmd);
+  return state_buffer_[slot_idx];
 }
 
-int ZenbeddedClient::zenoh_publish_state()
+uint8_t * ZenbeddedClientBase::prepare_state_write_slot(int & out_write_idx)
 {
-  if (!initialized_)
-  {
-    LOG_ERR("Zenbedded Client not initialized");
-    return -ENODEV;
-  }
-
-  // used slices to ensure zero dynamic allocations
-  zenbedded_state_t state;
-  z_owned_bytes_t payload;
-  z_owned_slice_t slice;
-
-  while (!read_state_from_buffer(state))
-  {
-  }
-
-  z_slice_from_buf(
-    &slice, reinterpret_cast<uint8_t *>(&state), sizeof(zenbedded_state_t), nullptr, nullptr);
-  z_bytes_from_slice(&payload, z_move(slice));
-
-  z_result_t ret = z_publisher_put(z_loan(z_state_pub_), z_move(payload), nullptr);
-  if (ret < 0)
-  {
-    LOG_ERR("Failed to publish state: %d", ret);
-  }
-  return ret;
+  out_write_idx = atomic_get(&state_buffer_active_idx_) ^ 1;
+  return state_buffer_[out_write_idx];
 }
 
-void ZenbeddedClient::sync()
+void ZenbeddedClientBase::commit_state_write_slot(int write_idx)
 {
-  if (!initialized_)
-  {
-    LOG_ERR("Zenbedded Client not initialized");
-    return;
-  }
-
-  write_state_to_buffer(user_state_buffer_);
-  while (!read_command_from_buffer(user_command_buffer_))
-  {
-  }
-}
-
-bool ZenbeddedClient::read_state_from_buffer(zenbedded_state_t & state)
-{
-  const int read_idx = atomic_get(&state_buffer_active_idx_);
-  const atomic_val_t ver_before = atomic_get(&state_buffer_version_[read_idx]);
-  state = state_buffer_[read_idx];
-
-  // Ensure read completes before consistency check
-  __atomic_thread_fence(__ATOMIC_ACQUIRE);
-
-  // Verify consistency
-  if (
-    atomic_get(&state_buffer_active_idx_) != read_idx ||
-    atomic_get(&state_buffer_version_[read_idx]) != ver_before)
-  {
-    return false;
-  }
-  return true;
-}
-
-bool ZenbeddedClient::read_command_from_buffer(zenbedded_command_t & cmd)
-{
-  const int read_idx = atomic_get(&cmd_buffer_active_idx_);
-  const atomic_val_t ver_before = atomic_get(&cmd_buffer_version_[read_idx]);
-  cmd = cmd_buffer_[read_idx];
-
-  // Ensure read completes before consistency check
-  __atomic_thread_fence(__ATOMIC_ACQUIRE);
-
-  if (
-    atomic_get(&cmd_buffer_active_idx_) != read_idx ||
-    atomic_get(&cmd_buffer_version_[read_idx]) != ver_before)
-  {
-    return false;
-  }
-  return true;
-}
-
-void ZenbeddedClient::write_state_to_buffer(const zenbedded_state_t & state)
-{
-  const int write_idx = atomic_get(&state_buffer_active_idx_) ^ 1;
-  state_buffer_[write_idx] = state;
-
   // Ensure write completes before version increment
   __atomic_thread_fence(__ATOMIC_RELEASE);
 
@@ -261,19 +120,36 @@ void ZenbeddedClient::write_state_to_buffer(const zenbedded_state_t & state)
   atomic_set(&state_buffer_active_idx_, write_idx);  // Flip active index
 }
 
-void ZenbeddedClient::write_command_to_buffer(const zenbedded_command_t & cmd)
+bool ZenbeddedClientBase::read_latest_command_raw(uint8_t * data, size_t size)
 {
-  const int write_idx = atomic_get(&cmd_buffer_active_idx_) ^ 1;
-  cmd_buffer_[write_idx] = cmd;
-
-  // Ensure write completes before version increment
-  __atomic_thread_fence(__ATOMIC_RELEASE);
-
-  atomic_inc(&cmd_buffer_version_[write_idx]);
-  atomic_set(&cmd_buffer_active_idx_, write_idx);  // Flip active index
+  while (!read_command_from_buffer(data, size))
+  {
+  }
+  return true;
 }
 
-int ZenbeddedClient::start_thread(uint32_t control_freq)
+int ZenbeddedClientBase::zenoh_publish_state()
+{
+  if (!initialized_)
+  {
+    LOG_ERR("Zenbedded Client not initialized");
+    return -ENODEV;
+  }
+
+  uint8_t tmp[CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE];
+  while (!read_state_from_buffer(tmp, state_payload_size_))
+  {
+  }
+
+  int ret = zenbedded_transport_publish(pub_, tmp, state_payload_size_);
+  if (ret < 0)
+  {
+    LOG_ERR("Failed to publish state: %d", ret);
+  }
+  return ret;
+}
+
+int ZenbeddedClientBase::start_thread(uint32_t control_freq)
 {
   if (!initialized_)
   {
@@ -283,7 +159,7 @@ int ZenbeddedClient::start_thread(uint32_t control_freq)
 
   if (control_freq == 0)
   {
-    LOG_WRN("Control Thread frequency is zero, thread unable to start");
+    LOG_WRN("Control Thread frequency is zero, thread wouldn't be started");
     return -EINVAL;
   }
 
@@ -299,7 +175,7 @@ int ZenbeddedClient::start_thread(uint32_t control_freq)
   k_thread_create(
     &control_thread_, control_thread_stack_, K_KERNEL_STACK_SIZEOF(control_thread_stack_),
     control_thread_fn,
-    this,     // arg1 - pass client instance
+    this,     // arg1
     nullptr,  // arg2
     nullptr,  // arg3
     CONFIG_ZENBEDDED_RCL_THREAD_PRIORITY,
@@ -308,12 +184,11 @@ int ZenbeddedClient::start_thread(uint32_t control_freq)
   );
 
   control_thread_started_ = true;
-
-  LOG_INF("Started thread at %i Hz", control_freq);
+  LOG_INF("Started thread at %u Hz", control_freq);
   return 0;
 }
 
-void ZenbeddedClient::stop_thread()
+void ZenbeddedClientBase::stop_thread()
 {
   if (!control_thread_started_)
   {
@@ -323,7 +198,6 @@ void ZenbeddedClient::stop_thread()
   LOG_INF("Stopping control thread");
   atomic_set(&control_thread_running_, 0);  // cleanly exit thread loop
 
-  // Wait for thread to exit (with timeout)
   int timeout_ms = 200;
   while (atomic_get(&control_thread_running_) != 0 && timeout_ms > 0)
   {
@@ -339,16 +213,15 @@ void ZenbeddedClient::stop_thread()
 
   control_thread_started_ = false;
   control_freq_ = 0;
-
   LOG_INF("Publish thread stopped");
 }
 
-void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
+void ZenbeddedClientBase::control_thread_fn(void * arg1, void * arg2, void * arg3)
 {
   ARG_UNUSED(arg2);
   ARG_UNUSED(arg3);
 
-  auto * self = static_cast<ZenbeddedClient *>(arg1);
+  auto * self = static_cast<ZenbeddedClientBase *>(arg1);
 
   if (!self)
   {
@@ -370,25 +243,100 @@ void ZenbeddedClient::control_thread_fn(void * arg1, void * arg2, void * arg3)
     }
 
     const uint32_t diff = k_uptime_get_32() - prev_time;
-    const uint32_t sleep_ms =
-      (diff >= period_ms) ? 1 : (period_ms - diff);  // make sure we don't overflow
-    k_sleep(K_MSEC(sleep_ms));                       // wait for extra time to maintain loop freq
+    const uint32_t sleep_ms = (diff >= period_ms) ? 1 : (period_ms - diff);
+    k_sleep(K_MSEC(sleep_ms));
     prev_time = k_uptime_get_32();
   }
 
-  // Clear running flag to signal exit
   atomic_set(&self->control_thread_running_, 0);
   LOG_INF("Publish thread stopped");
 }
 
-void ZenbeddedClient::start_zenoh_task()
+bool ZenbeddedClientBase::is_control_thread_running()
 {
-  zp_start_read_task(z_session_loan_mut(&z_session_), nullptr);
-  zp_start_lease_task(z_session_loan_mut(&z_session_), nullptr);
+  return atomic_get(&control_thread_running_);
 }
 
-void ZenbeddedClient::stop_zenoh_task()
+void ZenbeddedClientBase::reset_buffers()
 {
-  zp_stop_lease_task(z_session_loan_mut(&z_session_));
-  zp_stop_read_task(z_session_loan_mut(&z_session_));
+  atomic_set(&state_buffer_active_idx_, 0);
+  atomic_set(&cmd_buffer_active_idx_, 0);
+
+  atomic_set(&state_buffer_version_[0], 0);
+  atomic_set(&state_buffer_version_[1], 0);
+  atomic_set(&cmd_buffer_version_[0], 0);
+  atomic_set(&cmd_buffer_version_[1], 0);
+
+  memset(state_buffer_, 0, sizeof(state_buffer_));
+  memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
+}
+
+void ZenbeddedClientBase::on_transport_cmd_cb(
+  const uint8_t * payload, size_t size, void * user_data)
+{
+  auto * self = static_cast<ZenbeddedClientBase *>(user_data);
+
+  if (size != self->cmd_payload_size_)
+  {
+    LOG_WRN("Unexpected command payload size: %zu, expected %zu", size, self->cmd_payload_size_);
+    return;
+  }
+
+  self->write_command_to_buffer(payload, size);
+}
+
+bool ZenbeddedClientBase::read_state_from_buffer(uint8_t * data, size_t size)
+{
+  const int read_idx = atomic_get(&state_buffer_active_idx_);
+  const atomic_val_t ver_before = atomic_get(&state_buffer_version_[read_idx]);
+  memcpy(data, state_buffer_[read_idx], size);
+
+  __atomic_thread_fence(__ATOMIC_ACQUIRE);
+
+  if (
+    atomic_get(&state_buffer_active_idx_) != read_idx ||
+    atomic_get(&state_buffer_version_[read_idx]) != ver_before)
+  {
+    return false;
+  }
+  return true;
+}
+
+void ZenbeddedClientBase::write_state_to_buffer(const uint8_t * data, size_t size)
+{
+  const int write_idx = atomic_get(&state_buffer_active_idx_) ^ 1;
+  memcpy(state_buffer_[write_idx], data, size);
+
+  __atomic_thread_fence(__ATOMIC_RELEASE);
+
+  atomic_inc(&state_buffer_version_[write_idx]);
+  atomic_set(&state_buffer_active_idx_, write_idx);
+}
+
+void ZenbeddedClientBase::write_command_to_buffer(const uint8_t * data, size_t size)
+{
+  const int write_idx = atomic_get(&cmd_buffer_active_idx_) ^ 1;
+  memcpy(cmd_buffer_[write_idx], data, size);
+
+  __atomic_thread_fence(__ATOMIC_RELEASE);
+
+  atomic_inc(&cmd_buffer_version_[write_idx]);
+  atomic_set(&cmd_buffer_active_idx_, write_idx);
+}
+
+bool ZenbeddedClientBase::read_command_from_buffer(uint8_t * data, size_t size)
+{
+  const int read_idx = atomic_get(&cmd_buffer_active_idx_);
+  const atomic_val_t ver_before = atomic_get(&cmd_buffer_version_[read_idx]);
+  memcpy(data, cmd_buffer_[read_idx], size);
+
+  __atomic_thread_fence(__ATOMIC_ACQUIRE);
+
+  if (
+    atomic_get(&cmd_buffer_active_idx_) != read_idx ||
+    atomic_get(&cmd_buffer_version_[read_idx]) != ver_before)
+  {
+    return false;
+  }
+  return true;
 }
