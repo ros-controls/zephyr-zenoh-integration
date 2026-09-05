@@ -20,43 +20,73 @@ menu "Zenbedded RCL Configuration"
         help
             Stack size for the zenbedded thread.
 
-    config ZENBEDDED_RCL_ZENOH_MODE
-        string "The mode for zenoh-pico peer/client"
-        default "client"
+    config ZENBEDDED_MAX_STATE_BUFFER_SIZE
+        int "Maximum size of state message (for static allocation)"
+        default 256
 
-    config ZENBEDDED_RCL_ZENOH_LOCATOR
-        string "The locator/address to connect to for zenoh-pico"
-        default ""
+    config ZENBEDDED_MAX_CMD_BUFFER_SIZE
+        int "Maximum size of cmd message (for static allocation)"
+        default 256
 
-    config ZENBEDDED_RCL_DOMAIN_ID
-            int "ROS 2 Domain ID"
-            default 0
+    config ZENBEDDED_RCL_PUB_TOPIC
+        string "Name of the topic for publishing"
+        default "zenbedded/state"
+
+    config ZENBEDDED_RCL_SUB_TOPIC
+        string "name of the topic for subscribing"
+        default "zenbedded/cmd"
+
+    if ZENBEDDED_TIER_1
+        choice ZENBEDDED_RCL_STATE_MSG_TYPE
+            prompt "State (published) message type for tier 1"
+            default ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
             help
-              The domain ID for the ROS 2 graph.
+              ROS 2 message type serialized onto ZENBEDDED_RCL_PUB_TOPIC.
 
-	config ZENBEDDED_RCL_NODE_NAME
-            string "The ROS 2 node name assigned to the MCU"
-            default "zenbedded_mcu"
+            config ZENBEDDED_RCL_STATE_MSG_IMU
+                bool "sensor_msgs/msg/Imu"
+
+            config ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
+                bool "sensor_msgs/msg/JointState"
+
+            config ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
+                bool "std_msgs/msg/Float64MultiArray"
+
+            config ZENBEDDED_RCL_STATE_MSG_TWIST
+                bool "geometry_msgs/msg/Twist"
+        endchoice
+
+        # Hidden string config for State message
+        config ZENBEDDED_RCL_STATE_MSG_TYPE_STRING
+            string
+            default "sensor_msgs::msg::dds_::Imu_" if ZENBEDDED_RCL_STATE_MSG_IMU
+            default "sensor_msgs::msg::dds_::JointState_" if ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
+            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
+            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_STATE_MSG_TWIST
+
+        choice ZENBEDDED_RCL_CMD_MSG_TYPE
+            prompt "Command (subscribed) message type"
+            default ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
             help
-              The base node name used for liveliness tokens.
+              ROS 2 message type deserialized from ZENBEDDED_RCL_SUB_TOPIC.
 
-    config ZENBEDDED_RCL_ZENOH_MODE
-            string "The mode for zenoh-pico peer/client"
-            default "client"
+            config ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
+                bool "control_msgs/msg/JointCommand"
 
-	config ZENBEDDED_RCL_ZENOH_LOCATOR
-            string "The locator/address to connect to for zenoh-pico"
-            default "tcp/127.0.0.1:7447"
+            config ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
+                bool "std_msgs/msg/Float64MultiArray"
 
-    choice ZENBEDDED_RCL_QOS_RELIABILITY
-            prompt "Default QoS Reliability"
-            default ZENBEDDED_RCL_QOS_BEST_EFFORT
+            config ZENBEDDED_RCL_CMD_MSG_TWIST
+                bool "geometry_msgs/msg/Twist"
+        endchoice
 
-    config ZENBEDDED_RCL_QOS_BEST_EFFORT
-            bool "Best Effort (Low Latency, UDP-style queueing)"
+        # Hidden string config for Command message
+        config ZENBEDDED_RCL_CMD_MSG_TYPE_STRING
+            string
+            default "control_msgs::msg::dds_::JointCommand_" if ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
+            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
+            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_CMD_MSG_TWIST
 
-   	config ZENBEDDED_RCL_QOS_RELIABLE
-            bool "Reliable (Guaranteed Delivery)"
+    endif # ZENBEDDED_TIER_1
 
-	endchoice
 endmenu
