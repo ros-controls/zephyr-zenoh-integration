@@ -87,7 +87,7 @@ def test_ros2_commands_mcu(zenoh_router, dut: DeviceAdapter):
 
         try:
             dut.readlines_until(
-                regex=r"\[SUB 1\] Rate: \d+ Hz \| stepper: 45\.00 \| pendulum: -90\.50",
+                regex=r"\[SUB 1\] Polls/sec: \d+ \| stepper: 45\.00 \| pendulum: -90\.50",
                 timeout=TIMEOUT_SEC,
             )
         finally:

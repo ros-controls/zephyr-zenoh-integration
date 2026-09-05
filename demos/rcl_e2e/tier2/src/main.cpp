@@ -4,17 +4,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
+#include <zephyr/sys/printk.h>
 
 #include "zenbedded_rcl/codecs.hpp"
 #include "zenbedded_rcl/zenbedded_client.hpp"
 #include "zenbedded_transport/generated/interface_data.h"
 
-LOG_MODULE_REGISTER(rcl_tier2_single_thread, LOG_LEVEL_INF);
-
 int main()
 {
-  LOG_INF("--- Zenbedded RCL Tier 2 Single-Threaded Node ---");
+  printk("--- Zenbedded RCL Tier 2 Single-Threaded Node ---\n");
 
   // Instantiate the client using RawCodec for Tier 2 POD passthrough
   ZenbeddedClient<RawCodec<zenbedded_state_t>, RawCodec<zenbedded_command_t>> client;
@@ -23,7 +21,7 @@ int main()
   // base)
   if (client.init(100) != 0)
   {
-    LOG_ERR("Failed to initialize ZenbeddedClient");
+    printk("Failed to initialize ZenbeddedClient\n");
     return -1;
   }
 
@@ -31,7 +29,7 @@ int main()
   zenbedded_command_t latest_cmd = {0.0};
 
   uint32_t loop_counter = 0;
-  LOG_INF("[SYS] Entering Main Event Loop...");
+  printk("[SYS] Entering Main Event Loop\n");
 
   while (1)
   {
@@ -52,8 +50,8 @@ int main()
     loop_counter++;
     if (loop_counter % 1000 == 0)
     {
-      LOG_INF(
-        "Processed 1000 Loops | Pos: %.2f | Last Eff: %.2f", current_state.test_motor_position,
+      printk(
+        "Processed 1000 Loops | Pos: %.2f | Last Eff: %.2f\n", current_state.test_motor_position,
         latest_cmd.test_motor_effort);
     }
 
