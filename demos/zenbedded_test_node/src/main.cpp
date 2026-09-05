@@ -1,4 +1,4 @@
-// Copyright 2026 Zenbedded
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 // Licensed under the Apache License, Version 2.0
 
 #include <stdint.h>
@@ -7,8 +7,6 @@
 
 #include "zenbedded_transport/serialization.h"
 #include "zenbedded_transport/zenoh_transport.h"
-
-#ifdef CONFIG_ZENBEDDED_TIER_1
 
 // 1. Define global context so the callback knows how to parse the incoming bytes
 zcdr_joint_command_ctx_t ctx_sub_1;
@@ -19,12 +17,33 @@ void cmd_1_rx_callback(const uint8_t * payload, size_t size, void * user_data)
   zcdr_joint_command_ctx_t * ctx = reinterpret_cast<zcdr_joint_command_ctx_t *>(user_data);
   double vals[2] = {0};
 
-  if (zcdr_deserialize_joint_command(ctx, payload, size, NULL, NULL, vals))
+  static uint32_t rx_count = 0;
+  static uint32_t last_hz_time = 0;
+
+  rx_count++;
+  uint32_t current_time = k_uptime_get_32();
+
+  if (last_hz_time == 0)
   {
-    printf("[SUB 1] /joint_commands RX -> stepper: %.2f | pendulum: %.2f\n", vals[0], vals[1]);
+    last_hz_time = current_time;
+  }
+
+  bool success = zcdr_deserialize_joint_command(ctx, payload, size, NULL, NULL, vals);
+
+  if ((current_time - last_hz_time) >= 1000)
+  {
+    if (success)
+    {
+      printf("[SUB 1] Rate: %u Hz | stepper: %.2f | pendulum: %.2f\n", rx_count, vals[0], vals[1]);
+    }
+    else
+    {
+      printf("[SUB 1] Rate: %u Hz | ERROR: Deserialization failed (size: %zu)\n", rx_count, size);
+    }
+    rx_count = 0;
+    last_hz_time = current_time;
   }
 }
-#endif  // CONFIG_ZENBEDDED_TIER_1
 
 int main(void)
 {
@@ -35,13 +54,11 @@ int main(void)
 
 #ifdef CONFIG_ZENBEDDED_TIER_1
 
-  // Read from the Kconfig environment
-  int domain_id = CONFIG_ZENBEDDED_RCL_DOMAIN_ID;
-  const char * node_name = CONFIG_ZENBEDDED_RCL_NODE_NAME;
-  const char * mode = CONFIG_ZENBEDDED_RCL_ZENOH_MODE;
-  const char * locator = CONFIG_ZENBEDDED_RCL_ZENOH_LOCATOR;
-
-  if (zenbedded_transport_init(domain_id, node_name, mode, locator) != 0)
+  // Pass Kconfig macros directly into the transport API
+  if (
+    zenbedded_transport_init(
+      CONFIG_ZENBEDDED_DOMAIN_ID, CONFIG_ZENBEDDED_NODE_NAME, CONFIG_ZENBEDDED_ZENOH_MODE,
+      CONFIG_ZENBEDDED_ZENOH_IP_PORT) != 0)
   {
     printf("[FATAL] Transport init failed!\n");
     return -1;
@@ -53,7 +70,7 @@ int main(void)
   zcdr_joint_state_ctx_t ctx_joints;
   uint8_t buf_joints[512] = {0};
 
-  // We need a dummy buffer to initialize the read offset for the subscriber
+  // Dummy buffer to initialize the read offset for the subscriber
   uint8_t dummy_1[256] = {0};
 
   zcdr_init_joint_state(&ctx_joints, "base_link", chassis_joints, 2, buf_joints);
@@ -62,12 +79,12 @@ int main(void)
   // --- PUBLISHER DECLARATION ---
   zenbedded_pub_t pub_joints =
     zenbedded_transport_declare_publisher("joint_states", "sensor_msgs::msg::dds_::JointState_");
-  k_msleep(10);  // Prevent router UDP saturation
+  k_msleep(10);  // Pace graph declarations
 
   // --- SUBSCRIBER DECLARATION ---
   zenbedded_transport_declare_subscriber(
     "joint_commands", "control_msgs::msg::dds_::JointCommand_", cmd_1_rx_callback, &ctx_sub_1);
-  k_msleep(10);  // Prevent router UDP saturation
+  k_msleep(10);  // Pace graph declarations
 
   // --- DATA PAYLOADS ---
   double pos_2[] = {0.0, 0.0};
@@ -75,24 +92,21 @@ int main(void)
   double eff_2[] = {0.0, 0.0};
 
   // --- TIMING SETUP ---
-  uint32_t last_50hz_time = k_uptime_get_32();
+  uint32_t last_100hz_time = k_uptime_get_32();
 
   printf("\n[SYS] Entering High-Frequency Event Loop...\n\n");
 
   while (1)
   {
-    // 1. DRAIN NETWORK & KEEPALIVE (This triggers the callbacks!)
-    zenbedded_transport_spin();
-
     uint32_t current_time = k_uptime_get_32();
 
-    // 2. PUB 1: 50Hz LOOP (Every 20 ms)
-    if ((current_time - last_50hz_time) >= 20)
+    // 2. PUB 1: 100Hz LOOP (Every 10 ms)
+    if ((current_time - last_100hz_time) >= 10)
     {
       zcdr_serialize_joint_state(&ctx_joints, 0, 0, pos_2, vel_2, eff_2, buf_joints);
       zenbedded_transport_publish(pub_joints, buf_joints, ctx_joints.payload_size);
       pos_2[0] += 0.01;
-      last_50hz_time = current_time;
+      last_100hz_time = current_time;
     }
 
     // Yield CPU for 1ms to prevent starvation on native_sim

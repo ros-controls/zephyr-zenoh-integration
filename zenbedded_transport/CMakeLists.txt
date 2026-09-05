@@ -6,6 +6,10 @@ zephyr_include_directories(include)
 zephyr_library_sources(src/zenoh_transport.c)
 zephyr_library_compile_definitions(Z_CONFIG_SOCKET_TIMEOUT=1)
 
+zephyr_compile_definitions(
+  Z_FEATURE_UNSTABLE_API=1
+)
+
 if(CONFIG_ZENBEDDED_TIER_1)
   zephyr_library_sources(src/serialization.c)
 endif()
