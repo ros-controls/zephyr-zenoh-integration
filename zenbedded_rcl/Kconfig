@@ -59,10 +59,10 @@ menu "Zenbedded RCL Configuration"
         # Hidden string config for State message
         config ZENBEDDED_RCL_STATE_MSG_TYPE_STRING
             string
-            default "sensor_msgs/msg/Imu" if ZENBEDDED_RCL_STATE_MSG_IMU
-            default "sensor_msgs/msg/JointState" if ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
-            default "std_msgs/msg/Float64MultiArray" if ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
-            default "geometry_msgs/msg/Twist" if ZENBEDDED_RCL_STATE_MSG_TWIST
+            default "sensor_msgs::msg::dds_::Imu_" if ZENBEDDED_RCL_STATE_MSG_IMU
+            default "sensor_msgs::msg::dds_::JointState_" if ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
+            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
+            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_STATE_MSG_TWIST
 
         choice ZENBEDDED_RCL_CMD_MSG_TYPE
             prompt "Command (subscribed) message type"
@@ -83,9 +83,9 @@ menu "Zenbedded RCL Configuration"
         # Hidden string config for Command message
         config ZENBEDDED_RCL_CMD_MSG_TYPE_STRING
             string
-            default "control_msgs/msg/JointCommand" if ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
-            default "std_msgs/msg/Float64MultiArray" if ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
-            default "geometry_msgs/msg/Twist" if ZENBEDDED_RCL_CMD_MSG_TWIST
+            default "control_msgs::msg::dds_::JointCommand_" if ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
+            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
+            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_CMD_MSG_TWIST
 
     endif # ZENBEDDED_TIER_1
 
