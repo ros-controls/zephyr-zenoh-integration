@@ -32,6 +32,7 @@ Guides and Examples
    Architecture <architecture.rst>
    Demos <../demos/doc/userdoc.rst>
    Docker <../docker/doc/userdoc.rst>
+   Benchmarking <benchmarking.rst>
 
 
 .. _Zephyr RTOS: https://zephyrproject.org/
