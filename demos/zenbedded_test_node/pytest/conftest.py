@@ -14,11 +14,13 @@
 
 import os
 import signal
-import socket
 import subprocess
 import time
 
 import pytest
+
+ROUTER_READY_LINE = "Started Zenoh router with id"
+ROUTER_READY_TIMEOUT = 30
 
 
 def _stop_process_group(process):
@@ -39,11 +41,31 @@ def _stop_process_group(process):
     process.wait()
 
 
+def _wait_until_router_ready(process, log_path):
+    deadline = time.monotonic() + ROUTER_READY_TIMEOUT
+
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            pytest.fail(
+                f"rmw_zenohd exited with code {process.returncode}:\n{log_path.read_text()}"
+            )
+
+        if ROUTER_READY_LINE in log_path.read_text():
+            return
+
+        time.sleep(0.1)
+
+    pytest.fail(
+        f"rmw_zenohd did not report {ROUTER_READY_LINE!r} within "
+        f"{ROUTER_READY_TIMEOUT} seconds:\n{log_path.read_text()}"
+    )
+
+
 @pytest.fixture(scope="session")
 def zenoh_router(tmp_path_factory):
     log_path = tmp_path_factory.mktemp("zenoh") / "rmw_zenohd.log"
 
-    with log_path.open("w+") as log:
+    with log_path.open("w") as log:
         process = subprocess.Popen(
             ["ros2", "run", "rmw_zenoh_cpp", "rmw_zenohd"],
             stdout=log,
@@ -52,23 +74,7 @@ def zenoh_router(tmp_path_factory):
         )
 
         try:
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                if process.poll() is not None:
-                    log.flush()
-                    log.seek(0)
-                    pytest.fail(f"rmw_zenohd exited with code {process.returncode}:\n{log.read()}")
-
-                with socket.socket() as sock:
-                    sock.settimeout(0.2)
-                    if sock.connect_ex(("127.0.0.1", 7447)) == 0:
-                        print("\n[CI] TCP Port 7447 open. Stabilizing UDP discovery...")
-                        time.sleep(2.0)
-                        yield process
-                        return
-
-                time.sleep(0.1)
-
-            pytest.fail("rmw_zenohd did not listen on 127.0.0.1:7447 within 10 seconds")
+            _wait_until_router_ready(process, log_path)
+            yield process
         finally:
             _stop_process_group(process)
