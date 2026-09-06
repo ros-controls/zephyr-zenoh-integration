@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
-#include <zenbedded_rcl/generated/interface_data.h>
+#include <math.h>
+#include <time.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
@@ -24,12 +25,8 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/sntp.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <cmath>
-#include <ctime>
-#include <zenbedded_rcl/codecs.hpp>
-#include <zenbedded_rcl/zenbedded_client.hpp>
-
-#define NTP_SERVER "10.124.72.128"
+#include "zenbedded_rcl/codecs.hpp"
+#include "zenbedded_rcl/zenbedded_client.hpp"
 
 LOG_MODULE_REGISTER(inverted_pendulum_tier1, LOG_LEVEL_INF);
 
@@ -88,7 +85,7 @@ bool get_encoder_angle_deg(double * angle_rad)
 bool sync_time_from_ntp()
 {
   sntp_time sntp_time;
-  int rc = sntp_simple(NTP_SERVER, 5000, &sntp_time);
+  int rc = sntp_simple(CONFIG_NTP_SERVER, 5000, &sntp_time);
 
   if (rc < 0)
   {

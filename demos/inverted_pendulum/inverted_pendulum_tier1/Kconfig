@@ -1,0 +1,9 @@
+menu "Inverted Pendulum Tier1 Demo"
+
+config NTP_SERVER
+    string "ip address of ntp server"
+    default "127.0.0.1"
+
+endmenu
+
+source "Kconfig.zephyr"

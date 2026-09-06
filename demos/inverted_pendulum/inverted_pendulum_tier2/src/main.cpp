@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
-#include <zenbedded_rcl/generated/interface_data.h>
+#include <math.h>
+#include <zenbedded_transport/generated/interface_data.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
@@ -23,7 +24,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <cmath>
 #include <zenbedded_rcl/codecs.hpp>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
