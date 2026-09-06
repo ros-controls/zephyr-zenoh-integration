@@ -21,10 +21,10 @@
 
 int main()
 {
-  printf("\n=======================================\n");
-  printf("  Zenbedded Transport: RCL Reference   \n");
-  printf("  HIGH-SPEED 1-PUB/1-SUB EXECUTOR      \n");
-  printf("=======================================\n");
+  printk("\n=======================================\n");
+  printk("  Zenbedded RCL tier1 test  \n");
+  printk("  HIGH-SPEED 1-PUB/1-SUB EXECUTOR      \n");
+  printk("=======================================\n");
 
 #ifdef CONFIG_ZENBEDDED_TIER_1
 
@@ -44,7 +44,7 @@ int main()
   // Initialize Client (spawns 100Hz background publish thread automatically)
   if (client.init(100, state_params, cmd_params) != 0)
   {
-    printf("[FATAL] RCL init failed!\n");
+    printk("[FATAL] RCL init failed!\n");
     return -1;
   }
 
@@ -62,7 +62,7 @@ int main()
   uint32_t poll_count = 0;
   uint32_t last_hz_time = k_uptime_get_32();
 
-  printf("\n[SYS] Entering High-Frequency Event Loop\n\n");
+  printk("\n[SYS] Entering High-Frequency Event Loop\n\n");
 
   while (1)
   {
@@ -80,7 +80,7 @@ int main()
 
     if ((current_time - last_hz_time) >= 1000)
     {
-      printf(
+      printk(
         "[SUB 1] Polls/sec: %u | stepper: %.2f | pendulum: %.2f\n", poll_count, cmd_vals[0],
         cmd_vals[1]);
       poll_count = 0;
@@ -91,7 +91,7 @@ int main()
     k_sleep(K_MSEC(10));
   }
 #else
-  printf("\nCONFIG_ZENBEDDED_TIER_1 is disabled. Skipping execution.\n");
+  printk("\nCONFIG_ZENBEDDED_TIER_1 is disabled. Skipping execution.\n");
 #endif
 
   return 0;
