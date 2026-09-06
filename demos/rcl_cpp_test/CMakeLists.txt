@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl)
+list(APPEND ZEPHYR_EXTRA_MODULES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_transport
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../zenbedded_rcl
+)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 set(CMAKE_CXX_STANDARD 17)

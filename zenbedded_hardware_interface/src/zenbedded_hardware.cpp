@@ -1,4 +1,4 @@
-// Copyright 2026 kamal2730
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@
 #include <string>
 #include <vector>
 
-#include "hardware_interface/introspection.hpp"
+// #include "hardware_interface/introspection.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "zenbedded_schema/interface_schema.hpp"
+#include "zenbedded_hardware_interface/interface_schema.hpp"
 
 namespace zenbedded
 {

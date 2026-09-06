@@ -1,120 +1,119 @@
 // Copyright 2026 Open Source Robotics Foundation, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Licensed under the Apache License, Version 2.0
 
 #include <stdint.h>
 #include <stdio.h>
-
 #include <zephyr/kernel.h>
 
 #include "zenbedded_transport/serialization.h"
+#include "zenbedded_transport/zenoh_transport.h"
 
-#ifdef CONFIG_TIER_1
-static void print_hex_dump(const char * label, const uint8_t * buffer, size_t size)
+// 1. Define global context so the callback knows how to parse the incoming bytes
+zcdr_joint_command_ctx_t ctx_sub_1;
+
+// 2. The independent subscriber callback
+void cmd_1_rx_callback(const uint8_t * payload, size_t size, void * user_data)
 {
-  printf("\n--- %s HEX DUMP (%zu bytes) ---\n", label, size);
-  for (size_t i = 0; i < size; i++)
-  {
-    printf("%02X ", buffer[i]);
-    if ((i + 1) % 16 == 0)
-    {
-      printf("\n");
-    }
-  }
-  printf("\n---------------------------------------\n");
-}
-#endif
+  zcdr_joint_command_ctx_t * ctx = reinterpret_cast<zcdr_joint_command_ctx_t *>(user_data);
+  double vals[2] = {0};
 
-int main()
+  static uint32_t rx_count = 0;
+  static uint32_t last_hz_time = 0;
+
+  rx_count++;
+  uint32_t current_time = k_uptime_get_32();
+
+  if (last_hz_time == 0)
+  {
+    last_hz_time = current_time;
+  }
+
+  bool success = zcdr_deserialize_joint_command(ctx, payload, size, NULL, NULL, vals);
+
+  if ((current_time - last_hz_time) >= 1000)
+  {
+    if (success)
+    {
+      printf("[SUB 1] Rate: %u Hz | stepper: %.2f | pendulum: %.2f\n", rx_count, vals[0], vals[1]);
+    }
+    else
+    {
+      printf("[SUB 1] Rate: %u Hz | ERROR: Deserialization failed (size: %zu)\n", rx_count, size);
+    }
+    rx_count = 0;
+    last_hz_time = current_time;
+  }
+}
+
+int main(void)
 {
   printf("\n=======================================\n");
-  printf("  Zenbedded CDR: Integration Test Node\n");
+  printf("  Zenbedded Transport: RCL Reference   \n");
+  printf("  HIGH-SPEED 1-PUB/1-SUB EXECUTOR      \n");
   printf("=======================================\n");
 
-#ifdef CONFIG_TIER_1
-  printf("\n[Tier 1 Native CDR Engine Enabled]\n");
+#ifdef CONFIG_ZENBEDDED_TIER_1
 
-  // --- JointState Loopback Test ---
-  zcdr_joint_state_ctx_t state_ctx;
-  uint8_t state_buffer[512] = {0};
-
-  const char * frame_id = "base_link";
-  const char * joints[] = {"stepper", "pendulum"};
-  uint32_t num_joints = 2;
-
-  zcdr_init_joint_state(&state_ctx, frame_id, joints, num_joints, state_buffer);
-
-  double tx_pos[] = {1.57, -3.14};
-  double tx_vel[] = {0.5, 0.0};
-  double tx_eff[] = {1.2, 0.0};
-  zcdr_serialize_joint_state(&state_ctx, 1700000000, 500000, tx_pos, tx_vel, tx_eff, state_buffer);
-
-  printf("\n=== JointState Loopback ===\n");
-  print_hex_dump("JointState", state_buffer, state_ctx.payload_size);
-
-  int32_t rx_sec = 0;
-  uint32_t rx_nanosec = 0;
-  double rx_pos[2] = {0};
-  double rx_vel[2] = {0};
-  double rx_eff[2] = {0};
-
-  bool state_success = zcdr_deserialize_joint_state(
-    &state_ctx, state_buffer, state_ctx.payload_size, &rx_sec, &rx_nanosec, rx_pos, rx_vel, rx_eff);
-
-  if (state_success)
+  // Pass Kconfig macros directly into the transport API
+  if (
+    zenbedded_transport_init(
+      CONFIG_ZENBEDDED_DOMAIN_ID, CONFIG_ZENBEDDED_NODE_NAME, CONFIG_ZENBEDDED_ZENOH_MODE,
+      CONFIG_ZENBEDDED_ZENOH_IP_PORT) != 0)
   {
-    printf("SUCCESS: JointState payload extracted cleanly.\n");
-    printf("  -> Time: %d.%d\n", rx_sec, rx_nanosec);
-    printf("  -> Positions: [%f, %f]\n", rx_pos[0], rx_pos[1]);
-  }
-  else
-  {
-    printf("FAILED: Corrupted JointState payload.\n");
+    printf("[FATAL] Transport init failed!\n");
+    return -1;
   }
 
-  // --- JointCommand Loopback Test ---
-  zcdr_joint_command_ctx_t cmd_ctx;
-  uint8_t cmd_buffer[512] = {0};
-  const char * interface_name = "velocity";
+  // --- MEMORY & SERIALIZATION SETUP ---
+  const char * chassis_joints[] = {"stepper", "pendulum"};
 
-  zcdr_init_joint_command(&cmd_ctx, frame_id, joints, num_joints, interface_name, cmd_buffer);
+  zcdr_joint_state_ctx_t ctx_joints;
+  uint8_t buf_joints[512] = {0};
 
-  double cmd_tx_values[] = {10.5, -5.25};
-  zcdr_serialize_joint_command(&cmd_ctx, 1700000001, 600000, cmd_tx_values, cmd_buffer);
+  // Dummy buffer to initialize the read offset for the subscriber
+  uint8_t dummy_1[256] = {0};
 
-  printf("\n=== JointCommand Loopback ===\n");
-  print_hex_dump("JointCommand", cmd_buffer, cmd_ctx.payload_size);
+  zcdr_init_joint_state(&ctx_joints, "base_link", chassis_joints, 2, buf_joints);
+  zcdr_init_joint_command(&ctx_sub_1, "base_link", chassis_joints, 2, "position", dummy_1);
 
-  int32_t cmd_rx_sec = 0;
-  uint32_t cmd_rx_nano = 0;
-  double cmd_rx_values[2] = {0};
+  // --- PUBLISHER DECLARATION ---
+  zenbedded_pub_t pub_joints =
+    zenbedded_transport_declare_publisher("joint_states", "sensor_msgs::msg::dds_::JointState_");
+  k_msleep(10);  // Pace graph declarations
 
-  bool cmd_success = zcdr_deserialize_joint_command(
-    &cmd_ctx, cmd_buffer, cmd_ctx.payload_size, &cmd_rx_sec, &cmd_rx_nano, cmd_rx_values);
+  // --- SUBSCRIBER DECLARATION ---
+  zenbedded_transport_declare_subscriber(
+    "joint_commands", "control_msgs::msg::dds_::JointCommand_", cmd_1_rx_callback, &ctx_sub_1);
+  k_msleep(10);  // Pace graph declarations
 
-  if (cmd_success)
+  // --- DATA PAYLOADS ---
+  double pos_2[] = {0.0, 0.0};
+  double vel_2[] = {0.0, 0.0};
+  double eff_2[] = {0.0, 0.0};
+
+  // --- TIMING SETUP ---
+  uint32_t last_100hz_time = k_uptime_get_32();
+
+  printf("\n[SYS] Entering High-Frequency Event Loop...\n\n");
+
+  while (1)
   {
-    printf("SUCCESS: JointCommand payload extracted cleanly.\n");
-    printf("  -> Time: %d.%d\n", cmd_rx_sec, cmd_rx_nano);
-    printf("  -> Values: [%f, %f]\n", cmd_rx_values[0], cmd_rx_values[1]);
-  }
-  else
-  {
-    printf("FAILED: Corrupted JointCommand payload.\n");
-  }
+    uint32_t current_time = k_uptime_get_32();
 
+    // 2. PUB 1: 100Hz LOOP (Every 10 ms)
+    if ((current_time - last_100hz_time) >= 10)
+    {
+      zcdr_serialize_joint_state(&ctx_joints, 0, 0, pos_2, vel_2, eff_2, buf_joints);
+      zenbedded_transport_publish(pub_joints, buf_joints, ctx_joints.payload_size);
+      pos_2[0] += 0.01;
+      last_100hz_time = current_time;
+    }
+
+    // Yield CPU for 1ms to prevent starvation on native_sim
+    k_sleep(K_MSEC(1));
+  }
 #else
-  printf("\nCONFIG_TIER_1 is disabled. Skipping CDR tests.\n");
+  printf("\nCONFIG_ZENBEDDED_TIER_1 is disabled. Skipping execution.\n");
 #endif
 
   return 0;

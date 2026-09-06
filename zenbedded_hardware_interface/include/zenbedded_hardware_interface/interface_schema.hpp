@@ -1,4 +1,4 @@
-// Copyright 2026 kamal2730
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
-#define ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
+#ifndef ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
+#define ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_
 
 #include <cstdint>
 #include <string>
@@ -93,4 +93,4 @@ public:
 
 }  // namespace zenbedded
 
-#endif  // ZENBEDDED_SCHEMA__INTERFACE_SCHEMA_HPP_
+#endif  // ZENBEDDED_HARDWARE_INTERFACE__INTERFACE_SCHEMA_HPP_

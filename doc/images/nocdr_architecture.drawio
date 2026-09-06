@@ -19,7 +19,7 @@
         <mxCell id="vk47XNZfLGDAgj7HK243-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="ros2_controller" vertex="1">
           <mxGeometry height="60" width="120" x="230" y="60" as="geometry" />
         </mxCell>
-        <mxCell id="vk47XNZfLGDAgj7HK243-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;div&gt;zenbedded_schema&lt;/div&gt;" vertex="1">
+        <mxCell id="vk47XNZfLGDAgj7HK243-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;div&gt;zenbedded_transport&lt;/div&gt;" vertex="1">
           <mxGeometry height="60" width="120" x="480" y="60" as="geometry" />
         </mxCell>
         <mxCell id="vk47XNZfLGDAgj7HK243-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="zenbedded_hardware_interface" vertex="1">

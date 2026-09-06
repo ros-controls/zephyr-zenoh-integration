@@ -17,7 +17,6 @@ Packages
    :titlesonly:
 
    Hardware Interface <../zenbedded_hardware_interface/doc/userdoc.rst>
-   Schema <../zenbedded_schema/doc/userdoc.rst>
    Transport <../zenbedded_transport/doc/userdoc.rst>
    Firmware Client Library <../zenbedded_rcl/doc/userdoc.rst>
 
@@ -32,6 +31,7 @@ Guides and Examples
    Architecture <architecture.rst>
    Demos <../demos/doc/userdoc.rst>
    Docker <../docker/doc/userdoc.rst>
+   Benchmarking <benchmarking.rst>
 
 
 .. _Zephyr RTOS: https://zephyrproject.org/
