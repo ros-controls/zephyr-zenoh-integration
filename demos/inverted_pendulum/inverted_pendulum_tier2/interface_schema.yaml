@@ -1,8 +1,0 @@
-state_interfaces:
-  stepper_motor:
-    position: double
-  magnetic_encoder:
-    position: double
-command_interfaces:
-  stepper_motor:
-    velocity: double
