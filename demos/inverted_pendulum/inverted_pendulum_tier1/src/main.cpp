@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
-#include <zenbedded_rcl/generated/interface_data.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
