@@ -19,11 +19,11 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
 #include <zenbedded_rcl/zenbedded_client.hpp>
+#include <zenbedded_transport/generated/interface_data.h>
 
 LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
 
-#define STATE_TOPIC "zenbedded/test/state"
-#define CMD_TOPIC "zenbedded/test/cmd"
+using TestClient = ZenbeddedClient<RawCodec<zenbedded_state_t>, RawCodec<zenbedded_command_t>>;
 
 constexpr uint32_t kControlFreqHz = 50;
 constexpr int kIterations = 200;            // ~4s at 50Hz
@@ -73,9 +73,9 @@ int main(void)
   esp_wifi_set_ps(WIFI_PS_NONE);
   k_sleep(K_MSEC(200));
 
-  static ZenbeddedClient client;
+  static TestClient client;
 
-  int ret = client.init(STATE_TOPIC, CMD_TOPIC, kControlFreqHz);
+  int ret = client.init(kControlFreqHz);
   report(ret == 0, "client.init() returned 0");
   if (ret != 0)
   {
@@ -85,19 +85,21 @@ int main(void)
   report(client.is_initialized(), "client.is_initialized() is true after init()");
 
   bool cmd_val_changed = false;
-  int sync_calls = 0;
+  int write_calls = 0;
+
+  zenbedded_state_t s{};
+  zenbedded_command_t cmd{};
 
   for (int i = 0; i < kIterations; i++)
   {
-    zenbedded_state_t & s = client.state();
     double di = static_cast<double>(i);
     s.motor_arm_position = sin(di * 0.1) * 90.0;
     s.pendulum_axis_position = di * 0.01;
 
-    client.sync();
-    sync_calls++;
+    client.write_state(s);
+    write_calls++;
 
-    const zenbedded_command_t & cmd = client.command();
+    client.read_command(cmd);
 
     if (i % 20 == 0)
     {
@@ -116,7 +118,7 @@ int main(void)
     k_sleep(K_MSEC(1000 / kControlFreqHz));
   }
 
-  report(sync_calls == kIterations, "sync() called for every iteration without crashing");
+  report(write_calls == kIterations, "write_state() called for every iteration without crashing");
 
   report(
     cmd_val_changed,
