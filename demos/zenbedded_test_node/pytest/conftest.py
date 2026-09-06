@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import signal
 import subprocess
 import time
 
 import pytest
+import zenoh
 
-ROUTER_READY_LINE = "Started Zenoh router with id"
+ROUTER_ENDPOINT = "tcp/127.0.0.1:7447"
 ROUTER_READY_TIMEOUT = 30
 
 
@@ -41,8 +43,21 @@ def _stop_process_group(process):
     process.wait()
 
 
+def _router_is_reachable(endpoint):
+    conf = zenoh.Config()
+    conf.insert_json5("mode", '"client"')
+    conf.insert_json5("connect/endpoints", json.dumps([endpoint]))
+
+    session = zenoh.open(conf)
+    try:
+        return len(session.info.routers_zid()) > 0
+    finally:
+        session.close()
+
+
 def _wait_until_router_ready(process, log_path):
     deadline = time.monotonic() + ROUTER_READY_TIMEOUT
+    last_error = None
 
     while time.monotonic() < deadline:
         if process.poll() is not None:
@@ -50,14 +65,17 @@ def _wait_until_router_ready(process, log_path):
                 f"rmw_zenohd exited with code {process.returncode}:\n{log_path.read_text()}"
             )
 
-        if ROUTER_READY_LINE in log_path.read_text():
-            return
+        try:
+            if _router_is_reachable(ROUTER_ENDPOINT):
+                return
+        except Exception as error:
+            last_error = error
 
         time.sleep(0.1)
 
     pytest.fail(
-        f"rmw_zenohd did not report {ROUTER_READY_LINE!r} within "
-        f"{ROUTER_READY_TIMEOUT} seconds:\n{log_path.read_text()}"
+        f"could not open a zenoh session to {ROUTER_ENDPOINT} within "
+        f"{ROUTER_READY_TIMEOUT} seconds (last error: {last_error}):\n{log_path.read_text()}"
     )
 
 
