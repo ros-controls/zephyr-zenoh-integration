@@ -13,9 +13,8 @@
 // limitations under the License.
 
 #include "zenbedded_rcl/zenbedded_client.hpp"
+#include <zenbedded_transport/zenoh_transport.h>
 #include <zephyr/logging/log.h>
-#include <cerrno>
-#include <zenbedded_transport/zenoh_transport.hpp>
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
@@ -48,11 +47,32 @@ int ZenbeddedClientBase::init_base(
     return -ENOMEM;
   }
 
-  zenbedded_set_subscriber_cb(&ZenbeddedClientBase::on_transport_cmd_cb, this);
-
-  if (zenbedded_transport_init() != 0)
+  if (
+    zenbedded_transport_init(
+      CONFIG_ZENBEDDED_DOMAIN_ID, CONFIG_ZENBEDDED_NODE_NAME, CONFIG_ZENBEDDED_ZENOH_MODE,
+      CONFIG_ZENBEDDED_ZENOH_IP_PORT) != 0)
   {
     LOG_ERR("Failed to initialize zenbedded transport");
+    return -EIO;
+  }
+
+  const char *state_type = nullptr, *cmd_type = nullptr;
+#ifdef CONFIG_ZENBEDDED_TIER_1
+  state_type = CONFIG_ZENBEDDED_RCL_STATE_MSG_TYPE_STRING;
+  cmd_type = CONFIG_ZENBEDDED_RCL_CMD_MSG_TYPE_STRING;
+#endif
+
+  pub_ = zenbedded_transport_declare_publisher(CONFIG_ZENBEDDED_RCL_PUB_TOPIC, state_type);
+  if (pub_ == nullptr)
+  {
+    LOG_ERR("Failed to declare publisher");
+    return -EIO;
+  }
+  sub_ = zenbedded_transport_declare_subscriber(
+    CONFIG_ZENBEDDED_RCL_SUB_TOPIC, cmd_type, on_transport_cmd_cb, this);
+  if (sub_ == nullptr)
+  {
+    LOG_ERR("Failed to declare subscriber");
     return -EIO;
   }
 
@@ -73,8 +93,7 @@ void ZenbeddedClientBase::destroy()
     return;
   }
   stop_thread();
-  zenbedded_transport_close();
-  zenbedded_set_subscriber_cb(nullptr, nullptr);
+  zenbedded_transport_destroy();
 
   initialized_ = false;
   LOG_INF("ZenbeddedClient deinitialized");
@@ -121,7 +140,7 @@ int ZenbeddedClientBase::zenoh_publish_state()
   {
   }
 
-  int ret = zenbedded_publish(tmp, state_payload_size_);
+  int ret = zenbedded_transport_publish(pub_, tmp, state_payload_size_);
   if (ret < 0)
   {
     LOG_ERR("Failed to publish state: %d", ret);

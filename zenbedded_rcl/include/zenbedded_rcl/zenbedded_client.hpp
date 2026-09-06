@@ -15,12 +15,12 @@
 #ifndef ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 #define ZENBEDDED_RCL__ZENBEDDED_CLIENT_HPP_
 
+#include <stddef.h>
+#include <stdint.h>
 #include <zephyr/kernel.h>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 
 #include "zenbedded_rcl/codecs.hpp"
+#include "zenbedded_transport/zenoh_transport.h"
 
 class ZenbeddedClientBase
 {
@@ -70,6 +70,9 @@ protected:
   size_t cmd_payload_size_ = 0;
 
 private:
+  zenbedded_pub_t pub_{};
+  zenbedded_sub_t sub_{};
+
   uint8_t state_buffer_[2][CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE]{};
   atomic_t state_buffer_active_idx_{};
   atomic_t state_buffer_version_[2]{};

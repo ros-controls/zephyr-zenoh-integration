@@ -1,89 +1,164 @@
-menu "Zephyr Zenoh Integration Configuration"
+menu "Zenbedded Transport Configuration"
 
-    config ZENBEDDED_ZENOH_MODE
-        string "The mode for zenoh-pico peer/client"
-        default "client"
+config ZENBEDDED_TRANSPORT_LOG_LEVEL
+    int "Zenbedded Transport Log Level (0=OFF, 1=ERR, 2=WRN, 3=INF, 4=DBG)"
+    default 2
+    depends on LOG
+    help
+      Set to 4 (Debug) to expose raw Zenoh-pico wire-traces and KeepAlive logs
+      during transport layer debugging. Keeps the user console clean by default.
 
-    config ZENBEDDED_ZENOH_LOCATOR
-        string "The locator/address to connect to for zenoh-pico"
-        default ""
+choice ZENBEDDED_TRANSPORT_TIER
+    prompt "Integration Tier"
+    default ZENBEDDED_TIER_1
 
-    config ZENBEDDED_PUB_TOPIC
-        string "Name of the topic for publishing"
-        default "zenbedded/state"
+config ZENBEDDED_TIER_1
+    bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
+    select NETWORKING
+    select NET_IPV4
+    select NET_UDP
+    select NET_TCP
+    select NET_SOCKETS
+    select POSIX_API
+    select CBPRINTF_FP_SUPPORT
+    select ZENOH_PICO
+    select ZENOH_PICO_MULTI_THREAD
+    select ZENOH_PICO_LINK_UDP_UNICAST
+    select ZENOH_PICO_LINK_TCP
+    select ZENOH_PICO_PUBLICATION
+    select ZENOH_PICO_SUBSCRIPTION
+    select ZENOH_PICO_FRAGMENTATION
+    select ZENOH_PICO_RELIABILITY
 
-    config ZENBEDDED_SUB_TOPIC
-        string "name of the topic for subscribing"
-        default "zenbedded/cmd"
+config ZENBEDDED_TIER_2
+    bool "Tier 2: High-Throughput Raw Numeric"
+    select NETWORKING
+    select NET_IPV4
+    select NET_SOCKETS
+    select POSIX_API
+    select ZENOH_PICO
+    select ZENOH_PICO_MULTI_THREAD
+    select ZENOH_PICO_PUBLICATION
+    select ZENOH_PICO_SUBSCRIPTION
 
-    choice ZENBEDDED_TRANSPORT_TIER
-        prompt "Integration Tier"
-        default ZENBEDDED_TRANSPORT_TIER_1
+config ZENBEDDED_TIER_3
+    bool "Tier 3: Bit-Optimal Packed"
 
-        config ZENBEDDED_TRANSPORT_TIER_1
-            bool "Tier 1: Native ROS 2 Integration (Zenbedded CDR)"
-        config ZENBEDDED_TRANSPORT_TIER_2
-            bool "Tier 2: High-Throughput Raw Numeric"
-        config ZENBEDDED_TRANSPORT_TIER_3
-            bool "Tier 3: Bit-Optimal Packed"
+endchoice
 
-    endchoice
+# ==============================================================================
+# ZENOH MODE & NETWORK CONFIG
+# ==============================================================================
 
-    config ZENBEDDED_MAX_STATE_BUFFER_SIZE
-        int "Maximum size of state message (for static allocation)"
-        default 256
+choice ZENBEDDED_MODE
+    prompt "Zenoh Node Mode"
+    default ZENBEDDED_MODE_CLIENT
 
-    config ZENBEDDED_MAX_CMD_BUFFER_SIZE
-        int "Maximum size of cmd message (for static allocation)"
-        default 256
+config ZENBEDDED_MODE_CLIENT
+    bool "Client Mode (Default, Lightweight)"
+    help
+      The MCU connects to a listening Host PC (Peer) or Router.
+      This is the fastest, lowest-RAM option. Highly recommended.
 
+config ZENBEDDED_MODE_PEER
+    bool "Peer Mode (Listener / P2P)"
+    help
+      The MCU acts as a Peer (Listener/Router).
+      WARNING: Requires more RAM for routing tables.
 
-    if ZENBEDDED_TRANSPORT_TIER_1
+endchoice
 
-    config ZENBEDDED_DOMAIN_ID
-        int "ROS 2 Domain ID"
-        default 0
+config ZENBEDDED_ZENOH_MODE
+    string
+    default "client" if ZENBEDDED_MODE_CLIENT
+    default "peer" if ZENBEDDED_MODE_PEER
 
-    config ZENBEDDED_NODE_NAME
-        string "The ros2 node name assigned to the MCU"
-        default "zenbedded_mcu"
+choice ZENBEDDED_RELIABILITY
+    prompt "Tier 2 Transport Protocol"
+    default ZENBEDDED_QOS_BEST_EFFORT
 
-    choice
-        prompt "State (published) message type"
-        default ZENBEDDED_STATE_MSG_JOINT_STATE
-        help
-          ROS 2 message type serialized onto ZENBEDDED_PUB_TOPIC.
+config ZENBEDDED_QOS_BEST_EFFORT
+    bool "Best Effort (UDP)"
+    select NET_UDP
+    select ZENOH_PICO_LINK_UDP_UNICAST if ZENBEDDED_MODE_CLIENT
+    select ZENOH_PICO_LINK_UDP_MULTICAST if ZENBEDDED_MODE_PEER
+    help
+      Uses UDP transport.
+      If Client: Uses UDP Unicast.
+      If Peer: Uses UDP Multicast.
+      Note: Default enforces Zenoh Best-Effort & Congestion Drop.
 
-        config ZENBEDDED_STATE_MSG_IMU
-            bool "sensor_msgs/msg/Imu"
+config ZENBEDDED_QOS_RELIABLE
+    bool "Reliable (TCP)"
+    select NET_TCP
+    select ZENOH_PICO_LINK_TCP
+    help
+      Uses TCP transport.
+      Valid for both Client (Unicast) and Peer (P2P Unicast).
+      Provides OS-level retries. Default enforces Congestion Drop to protect 500Hz loops.
 
-        config ZENBEDDED_STATE_MSG_JOINT_STATE
-            bool "sensor_msgs/msg/JointState"
+endchoice
 
-        config ZENBEDDED_STATE_MSG_FLOAT64_MULTI_ARRAY
-            bool "std_msgs/msg/Float64MultiArray"
+config ZENBEDDED_ZENOH_IP_PORT
+    string "Zenoh Target (IP:Port)"
+    default "127.0.0.1:7447"
+    help
+      For Client: Enter Host PC IP (e.g., 192.168.1.50:7447).
+      For TCP Peer: Enter Listener IP (e.g., 0.0.0.0:7447).
+      For UDP Peer: Enter Multicast IP (e.g., 224.0.0.123:7447).
+      The transport layer will automatically prepend "udp/" or "tcp/".
 
-        config ZENBEDDED_STATE_MSG_TWIST
-            bool "geometry_msgs/msg/Twist"
-    endchoice
+config ZENBEDDED_DOMAIN_ID
+    int "ROS 2 Domain ID"
+    default 0
+    help
+      The network domain ID. Must match the Host PC's ROS_DOMAIN_ID.
+      Isolates different robot systems on the same network.
 
-    choice
-        prompt "Command (subscribed) message type"
-        default ZENBEDDED_CMD_MSG_JOINT_COMMAND
-        help
-          ROS 2 message type deserialized from ZENBEDDED_SUB_TOPIC.
+config ZENBEDDED_NODE_NAME
+    string "Zenbedded Node Name"
+    default "zenbedded_node"
+    help
+      The unique identifier for this specific microcontroller on the network.
 
-        config ZENBEDDED_CMD_MSG_JOINT_COMMAND
-            bool "control_msgs/msg/JointCommand"
+# ==============================================================================
+# TIER 2 CONFIGURATION
+# ==============================================================================
 
-        config ZENBEDDED_CMD_MSG_FLOAT64_MULTI_ARRAY
-            bool "std_msgs/msg/Float64MultiArray"
+config ZENBEDDED_TIER2_SCHEMA_PATH
+    string "Path to Tier 2 YAML Schema"
+    depends on ZENBEDDED_TIER_2
+    default "config/interface_schema.yaml"
+    help
+      Path to the YAML schema file relative to the application's source directory.
+      The build system will read this file to auto-generate the C-header struct.
 
-        config ZENBEDDED_CMD_MSG_TWIST
-            bool "geometry_msgs/msg/Twist"
-    endchoice
+# ==============================================================================
+# SYSTEM DEFAULTS
+# ==============================================================================
 
-    endif # ZENBEDDED_TRANSPORT_TIER_1
+config NET_BUF_DATA_SIZE
+    default 256
 
+config NET_BUF_RX_COUNT
+    default 16
+
+config NET_BUF_TX_COUNT
+    default 16
+
+config NET_PKT_RX_COUNT
+    default 16
+
+config NET_PKT_TX_COUNT
+    default 16
+
+config HEAP_MEM_POOL_SIZE
+    default 65536
+
+config MAIN_STACK_SIZE
+    default 16384
+
+config SYSTEM_WORKQUEUE_STACK_SIZE
+    default 8192
 
 endmenu

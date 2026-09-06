@@ -1,4 +1,4 @@
-// Copyright 2026 Zenbedded
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "zenbedded_transport/serialization.hpp"
+#include "zenbedded_transport/serialization.h"
 
-#include <cstring>
+#include <string.h>
 
-#ifdef CONFIG_ZENBEDDED_TRANSPORT_TIER_1
+#ifdef CONFIG_ZENBEDDED_TIER_1
 
 #define CDR_HEADER_SIZE 4
 #define ALIGN_UP(offset, alignment) \
@@ -259,4 +259,4 @@ bool zcdr_deserialize_joint_command(
   return true;
 }
 
-#endif  // CONFIG_ZENBEDDED_TRANSPORT_TIER_1
+#endif  // CONFIG_ZENBEDDED_TIER_1

@@ -1,4 +1,4 @@
-// Copyright 2026 Zenbedded
+// Copyright 2026 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include <rclcpp/serialized_message.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 
-#include "zenbedded_transport/serialization.hpp"
+#include "zenbedded_transport/serialization.h"
 
 namespace
 {
