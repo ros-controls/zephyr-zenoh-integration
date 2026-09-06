@@ -16,6 +16,7 @@
 #define ZENBEDDED_RCL__CODECS_HPP_
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #ifdef CONFIG_ZENBEDDED_TIER_1
