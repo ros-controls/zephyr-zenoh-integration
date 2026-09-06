@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include <esp_wifi.h>
+#include <zenbedded_transport/generated/interface_data.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <cmath>
 #include <zenbedded_rcl/zenbedded_client.hpp>
-#include <zenbedded_transport/generated/interface_data.h>
 
 LOG_MODULE_REGISTER(zenbedded_test_node, LOG_LEVEL_INF);
 
