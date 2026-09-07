@@ -23,10 +23,19 @@ menu "Zenbedded RCL Configuration"
     config ZENBEDDED_MAX_STATE_BUFFER_SIZE
         int "Maximum size of state message (for static allocation)"
         default 256
+        range 32 2048
+        help
+            Sizes both state double-buffer slots and a temporary of the same
+            size that zenoh_publish_state() places on the control thread's
+            stack, so raising this eats into ZENBEDDED_RCL_THREAD_STACK_SIZE.
 
     config ZENBEDDED_MAX_CMD_BUFFER_SIZE
         int "Maximum size of cmd message (for static allocation)"
         default 256
+        range 32 2048
+        help
+            Sizes both command double-buffer slots and a temporary of the same
+            size that read_command() places on the calling thread's stack.
 
     config ZENBEDDED_RCL_PUB_TOPIC
         string "Name of the topic for publishing"
@@ -43,26 +52,27 @@ menu "Zenbedded RCL Configuration"
             help
               ROS 2 message type serialized onto ZENBEDDED_RCL_PUB_TOPIC.
 
-            config ZENBEDDED_RCL_STATE_MSG_IMU
-                bool "sensor_msgs/msg/Imu"
-
             config ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
                 bool "sensor_msgs/msg/JointState"
 
-            config ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
-                bool "std_msgs/msg/Float64MultiArray"
-
-            config ZENBEDDED_RCL_STATE_MSG_TWIST
-                bool "geometry_msgs/msg/Twist"
+            # Imu, Float64MultiArray and Twist are disabled until each has a
+            # codec in codecs.hpp and an entry in RIHS_LEDGER. Without both, the
+            # keyexpr ends in UNKNOWN_HASH and no rmw_zenoh peer ever matches.
+            #
+            # config ZENBEDDED_RCL_STATE_MSG_IMU
+            #     bool "sensor_msgs/msg/Imu"
+            #
+            # config ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
+            #     bool "std_msgs/msg/Float64MultiArray"
+            #
+            # config ZENBEDDED_RCL_STATE_MSG_TWIST
+            #     bool "geometry_msgs/msg/Twist"
         endchoice
 
         # Hidden string config for State message
         config ZENBEDDED_RCL_STATE_MSG_TYPE_STRING
             string
-            default "sensor_msgs::msg::dds_::Imu_" if ZENBEDDED_RCL_STATE_MSG_IMU
             default "sensor_msgs::msg::dds_::JointState_" if ZENBEDDED_RCL_STATE_MSG_JOINT_STATE
-            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_STATE_MSG_FLOAT64_MULTI_ARRAY
-            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_STATE_MSG_TWIST
 
         choice ZENBEDDED_RCL_CMD_MSG_TYPE
             prompt "Command (subscribed) message type"
@@ -73,19 +83,19 @@ menu "Zenbedded RCL Configuration"
             config ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
                 bool "control_msgs/msg/JointCommand"
 
-            config ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
-                bool "std_msgs/msg/Float64MultiArray"
-
-            config ZENBEDDED_RCL_CMD_MSG_TWIST
-                bool "geometry_msgs/msg/Twist"
+            # Disabled for the same reason as the state types above.
+            #
+            # config ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
+            #     bool "std_msgs/msg/Float64MultiArray"
+            #
+            # config ZENBEDDED_RCL_CMD_MSG_TWIST
+            #     bool "geometry_msgs/msg/Twist"
         endchoice
 
         # Hidden string config for Command message
         config ZENBEDDED_RCL_CMD_MSG_TYPE_STRING
             string
             default "control_msgs::msg::dds_::JointCommand_" if ZENBEDDED_RCL_CMD_MSG_JOINT_COMMAND
-            default "std_msgs::msg::dds_::Float64MultiArray_" if ZENBEDDED_RCL_CMD_MSG_FLOAT64_MULTI_ARRAY
-            default "geometry_msgs::msg::dds_::Twist_" if ZENBEDDED_RCL_CMD_MSG_TWIST
 
     endif # ZENBEDDED_TIER_1
 
