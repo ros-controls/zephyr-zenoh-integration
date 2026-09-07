@@ -18,7 +18,14 @@
 
 LOG_MODULE_REGISTER(zenbedded_client, LOG_LEVEL_INF);
 
+BUILD_ASSERT(
+  2 * CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE < CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE,
+  "CONFIG_ZENBEDDED_MAX_STATE_BUFFER_SIZE leaves too little control thread stack; "
+  "raise CONFIG_ZENBEDDED_RCL_THREAD_STACK_SIZE");
+
 ZenbeddedClientBase::ZenbeddedClientBase() { reset_buffers(); }
+
+ZenbeddedClientBase::~ZenbeddedClientBase() { destroy(); }
 
 int ZenbeddedClientBase::init_base(
   uint32_t control_freq, size_t state_payload_size, size_t cmd_payload_size)
@@ -95,6 +102,8 @@ void ZenbeddedClientBase::destroy()
   stop_thread();
   zenbedded_transport_destroy();
 
+  pub_ = nullptr;
+  sub_ = nullptr;
   initialized_ = false;
   LOG_INF("ZenbeddedClient deinitialized");
 }
@@ -197,14 +206,7 @@ void ZenbeddedClientBase::stop_thread()
   LOG_INF("Stopping control thread");
   atomic_set(&control_thread_running_, 0);  // cleanly exit thread loop
 
-  int timeout_ms = 200;
-  while (atomic_get(&control_thread_running_) != 0 && timeout_ms > 0)
-  {
-    k_sleep(K_MSEC(10));
-    timeout_ms -= 10;
-  }
-
-  if (timeout_ms <= 0)
+  if (k_thread_join(&control_thread_, K_MSEC(200)) != 0)
   {
     LOG_WRN("Control thread did not stop gracefully");
     k_thread_abort(&control_thread_);
