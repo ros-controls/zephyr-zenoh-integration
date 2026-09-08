@@ -57,9 +57,9 @@ def test_tier2_ping_pong(zenoh_router, dut: DeviceAdapter):
         # defines no __bool__, so .matching must be read explicitly to get a real answer.
         deadline = time.monotonic() + MATCHING_TIMEOUT_SEC
         while not pub.matching_status.matching:
-            assert time.monotonic() < deadline, (
-                f"no matching subscriber within {MATCHING_TIMEOUT_SEC}s"
-            )
+            assert (
+                time.monotonic() < deadline
+            ), f"no matching subscriber within {MATCHING_TIMEOUT_SEC}s"
             time.sleep(0.05)
 
         pub.put(struct.pack("<d", COMMAND_EFFORT))
