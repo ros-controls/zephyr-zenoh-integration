@@ -21,19 +21,8 @@ import time
 import pytest
 import zenoh
 
-
-def _router_is_ready(endpoint="tcp/127.0.0.1:7447"):
-    conf = zenoh.Config()
-    conf.insert_json5("mode", '"client"')
-    conf.insert_json5("connect/endpoints", json.dumps([endpoint]))
-    try:
-        session = zenoh.open(conf)
-    except Exception:
-        return False
-    try:
-        return len(session.info.routers_zid()) > 0
-    finally:
-        session.close()
+ROUTER_ENDPOINT = "tcp/127.0.0.1:7447"
+ROUTER_READY_TIMEOUT = 30
 
 
 def _stop_process_group(process):
@@ -54,11 +43,47 @@ def _stop_process_group(process):
     process.wait()
 
 
+def _router_is_reachable(endpoint):
+    conf = zenoh.Config()
+    conf.insert_json5("mode", '"client"')
+    conf.insert_json5("connect/endpoints", json.dumps([endpoint]))
+
+    session = zenoh.open(conf)
+    try:
+        return len(session.info.routers_zid()) > 0
+    finally:
+        session.close()
+
+
+def _wait_until_router_ready(process, log_path):
+    deadline = time.monotonic() + ROUTER_READY_TIMEOUT
+    last_error = None
+
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            pytest.fail(
+                f"rmw_zenohd exited with code {process.returncode}:\n{log_path.read_text()}"
+            )
+
+        try:
+            if _router_is_reachable(ROUTER_ENDPOINT):
+                return
+        except Exception as error:
+            last_error = error
+
+        time.sleep(0.1)
+
+    pytest.fail(
+        f"could not open a zenoh session to {ROUTER_ENDPOINT} within "
+        f"{ROUTER_READY_TIMEOUT} seconds (last error: {last_error}):\n{log_path.read_text()}"
+    )
+
+
 @pytest.fixture(scope="session")
 def zenoh_router(tmp_path_factory):
     log_path = tmp_path_factory.mktemp("zenoh") / "rmw_zenohd.log"
 
-    with log_path.open("w+") as log:
+    with log_path.open("w") as log:
         process = subprocess.Popen(
             ["ros2", "run", "rmw_zenoh_cpp", "rmw_zenohd"],
             stdout=log,
@@ -67,22 +92,7 @@ def zenoh_router(tmp_path_factory):
         )
 
         try:
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                if process.poll() is not None:
-                    log.flush()
-                    log.seek(0)
-                    pytest.fail(f"rmw_zenohd exited with code {process.returncode}:\n{log.read()}")
-
-                if _router_is_ready():
-                    print("\n[CI] Zenoh router handshake confirmed ready.")
-                    yield process
-                    return
-
-                time.sleep(0.1)
-
-            log.flush()
-            log.seek(0)
-            pytest.fail(f"rmw_zenohd did not become ready within 10 seconds:\n{log.read()}")
+            _wait_until_router_ready(process, log_path)
+            yield process
         finally:
             _stop_process_group(process)

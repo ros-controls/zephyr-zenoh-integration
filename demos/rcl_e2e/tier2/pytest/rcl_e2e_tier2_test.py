@@ -13,11 +13,16 @@
 # limitations under the License.
 
 import struct
-import threading
+import time
+
+import pytest
 import zenoh
 from twister_harness import DeviceAdapter
 
 TIMEOUT_SEC = 5.0
+MATCHING_TIMEOUT_SEC = 10.0
+COMMAND_EFFORT = 4.0
+STATE_FORMAT = "<dd"
 
 
 def test_tier2_ping_pong(zenoh_router, dut: DeviceAdapter):
@@ -32,35 +37,55 @@ def test_tier2_ping_pong(zenoh_router, dut: DeviceAdapter):
 
     z = zenoh.open(conf)
 
-    pong_received = threading.Event()
-    latest_state = (0.0, 0.0)
+    latest_state = None
+    bad_payload_size = None
 
     def state_callback(sample):
-        nonlocal latest_state
+        nonlocal latest_state, bad_payload_size
+        payload_bytes = bytes(sample.payload)
         try:
-            payload_bytes = bytes(sample.payload)
-            latest_state = struct.unpack("<dd", payload_bytes)
-            pong_received.set()
+            latest_state = struct.unpack(STATE_FORMAT, payload_bytes)
         except struct.error:
-            pass
+            bad_payload_size = len(payload_bytes)
+
+    pub = z.declare_publisher("test_motor/cmd")
+    sub = z.declare_subscriber("test_motor/state", state_callback)
 
     try:
-        pub = z.declare_publisher("test_motor/cmd")
-        z.declare_subscriber("test_motor/state", state_callback)
+        # declare_publisher returns before the router has propagated the firmware's
+        # subscription, so publishing immediately can drop the sample. MatchingStatus
+        # defines no __bool__, so .matching must be read explicitly to get a real answer.
+        deadline = time.monotonic() + MATCHING_TIMEOUT_SEC
+        while not pub.matching_status.matching:
+            assert time.monotonic() < deadline, (
+                f"no matching subscriber within {MATCHING_TIMEOUT_SEC}s"
+            )
+            time.sleep(0.05)
 
-        # Send initial command frame to trigger telemetry feedback
-        effort = 0.0
-        pong_received.clear()
-        pub.put(struct.pack("<d", effort))
+        pub.put(struct.pack("<d", COMMAND_EFFORT))
 
-        # Assert round-trip response from the MCU
-        assert pong_received.wait(
-            timeout=TIMEOUT_SEC
-        ), "Tier 2 ping-pong timeout: No state response received from MCU"
+        # The firmware publishes state at 100Hz whether or not a command ever lands,
+        # so the command round-trip is only proven by the echoed velocity.
+        expected_velocity = COMMAND_EFFORT * 0.5
+        deadline = time.monotonic() + TIMEOUT_SEC
+        while True:
+            state = latest_state
+            if state is not None and state[1] == pytest.approx(expected_velocity):
+                break
 
-        pos, vel = latest_state
-        assert isinstance(pos, float)
-        assert isinstance(vel, float)
+            assert bad_payload_size is None, (
+                f"state payload was {bad_payload_size} bytes, "
+                f"expected {struct.calcsize(STATE_FORMAT)}"
+            )
+            assert time.monotonic() < deadline, (
+                f"MCU did not echo effort {COMMAND_EFFORT} as velocity "
+                f"{expected_velocity} within {TIMEOUT_SEC}s; last state={state}"
+            )
+            time.sleep(0.05)
+
+        assert state[0] > 0.0, f"position never advanced: {state}"
 
     finally:
+        sub.undeclare()
+        pub.undeclare()
         z.close()
