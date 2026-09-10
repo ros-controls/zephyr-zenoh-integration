@@ -258,6 +258,11 @@ bool ZenbeddedClientBase::is_control_thread_running()
   return atomic_get(&control_thread_running_);
 }
 
+uint32_t ZenbeddedClientBase::accepted_command_count() const
+{
+  return static_cast<uint32_t>(atomic_get(&cmd_accepted_count_));
+}
+
 void ZenbeddedClientBase::reset_buffers()
 {
   atomic_set(&state_buffer_active_idx_, 0);
@@ -267,6 +272,7 @@ void ZenbeddedClientBase::reset_buffers()
   atomic_set(&state_buffer_version_[1], 0);
   atomic_set(&cmd_buffer_version_[0], 0);
   atomic_set(&cmd_buffer_version_[1], 0);
+  atomic_set(&cmd_accepted_count_, 0);
 
   memset(state_buffer_, 0, sizeof(state_buffer_));
   memset(cmd_buffer_, 0, sizeof(cmd_buffer_));
@@ -323,6 +329,7 @@ void ZenbeddedClientBase::write_command_to_buffer(const uint8_t * data, size_t s
 
   atomic_inc(&cmd_buffer_version_[write_idx]);
   atomic_set(&cmd_buffer_active_idx_, write_idx);
+  atomic_inc(&cmd_accepted_count_);
 }
 
 bool ZenbeddedClientBase::read_command_from_buffer(uint8_t * data, size_t size)
