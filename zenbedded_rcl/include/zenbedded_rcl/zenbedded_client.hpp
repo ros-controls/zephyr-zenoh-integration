@@ -46,6 +46,13 @@ public:
   /// @brief Check if publish thread is running.
   bool is_control_thread_running();
 
+  /// @brief Monotonic count of command payloads accepted from the transport.
+  ///
+  /// read_command() cannot report whether a command is new: it blocks until the double buffer is
+  /// consistent and the codecs only reject undersized payloads. Callers that must react to a
+  /// stalled peer compare this counter across control cycles instead.
+  [[nodiscard]] uint32_t accepted_command_count() const;
+
 protected:
   /// @brief Initializes base buffers, transport layer, and background thread.
   int init_base(uint32_t control_freq, size_t state_payload_size, size_t cmd_payload_size);
@@ -80,6 +87,7 @@ private:
   uint8_t cmd_buffer_[2][CONFIG_ZENBEDDED_MAX_CMD_BUFFER_SIZE]{};
   atomic_t cmd_buffer_active_idx_{};
   atomic_t cmd_buffer_version_[2]{};
+  atomic_t cmd_accepted_count_{};
 
   uint32_t control_freq_ = 0;
   atomic_t control_thread_running_ = 0;
