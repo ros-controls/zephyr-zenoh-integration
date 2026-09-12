@@ -308,13 +308,14 @@ int main()
       .pendulum_joint_position = encoder_angle,
       .pendulum_joint_velocity = pendulum_joint_velocity};
 
-    // if (++print_count == 100) {
-    //   print_count = 0;
-    //   printk(
-    //     "stepper_angle=%.4f rad, stepper_vel=%.4f rad/s, "
-    //     "encoder_angle=%.4f rad, encoder_vel=%.4f rad/s\n",
-    //     stepper_angle, motor_joint_velocity, encoder_angle, pendulum_joint_velocity);
-    // }
+    if (++print_count == 100)
+    {
+      print_count = 0;
+      printk(
+        "stepper_angle=%.4f rad, stepper_vel=%.4f rad/s, "
+        "encoder_angle=%.4f rad, encoder_vel=%.4f rad/s\n",
+        stepper_angle, motor_joint_velocity, encoder_angle, pendulum_joint_velocity);
+    }
 
     zenbedded_command_t cmd_val;
 
