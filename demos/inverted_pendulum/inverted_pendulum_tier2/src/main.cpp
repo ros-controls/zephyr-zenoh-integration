@@ -301,6 +301,8 @@ int main()
 
   while (true)
   {
+    uint32_t loop_start_ms = k_uptime_get_32();
+
     if (stepper_ctrl_get_actual_position(stepper_ctrl, &stepper_position) == 0)
     {
       stepper_angle = microsteps_to_angle(stepper_position) - stepper_angle_offset;
@@ -391,7 +393,11 @@ int main()
       led_strip_update_rgb(led, pixels, STRIP_NUM_PIXELS);
     }
 
-    k_sleep(K_MSEC(kControlPeriodMs));
+    // ensure kControlPeriodMs loop timing
+    uint32_t loop_duration_ms = k_uptime_get_32() - loop_start_ms;
+    uint32_t sleep_ms =
+      (loop_duration_ms < kControlPeriodMs) ? kControlPeriodMs - loop_duration_ms : 1;
+    k_sleep(K_MSEC(sleep_ms));
   }
 
   client.destroy();
