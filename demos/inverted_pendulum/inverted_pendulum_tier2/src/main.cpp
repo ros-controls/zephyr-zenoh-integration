@@ -18,6 +18,7 @@
 #include <zenbedded_transport/generated/interface_data.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/drivers/led_strip.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/stepper/stepper.h>
 #include <zephyr/drivers/stepper/stepper_ctrl.h>
@@ -70,6 +71,14 @@ constexpr double kMaxAngularVelocityRadPerSec =
 const device * stepper_driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver));
 const device * stepper_ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl));
 const device * encoder_driver = DEVICE_DT_GET(DT_ALIAS(encoder_driver));
+
+// LED Setup
+#define STRIP_NUM_PIXELS DT_PROP_OR(DT_ALIAS(led_strip), chain_length, 1)
+#define RGB(_r, _g, _b) \
+  led_rgb { .r = (_r), .g = (_g), .b = (_b) }
+const device * led = DEVICE_DT_GET(DT_ALIAS(led_strip));
+static led_rgb pixels[STRIP_NUM_PIXELS];
+bool led_ready = false;
 
 // Absolute microstep bounds corresponding to +-kStepperAngleLimitRad around the
 // boot-time zero. Every move_to() target is clamped into this range before being
@@ -187,6 +196,18 @@ int main()
     return 0;
   }
 
+  // Set LEDs to Blue for the Setup Phase
+  if (device_is_ready(led))
+  {
+    pixels[0] = RGB(0x00, 0x00, 0xFF);
+    led_strip_update_rgb(led, pixels, STRIP_NUM_PIXELS);
+    led_ready = true;
+  }
+  else
+  {
+    LOG_WRN("LED device not ready");
+  }
+
   LOG_INF("Starting Inverted Pendulum Tier2");
   net_if * iface = net_if_get_default();
 
@@ -275,6 +296,9 @@ int main()
   double prev_stepper_angle = stepper_angle;
   double prev_encoder_angle = encoder_angle;
 
+  uint32_t led_toggle_counter = 0;
+  bool is_led_red = true;
+
   while (true)
   {
     if (stepper_ctrl_get_actual_position(stepper_ctrl, &stepper_position) == 0)
@@ -357,6 +381,15 @@ int main()
 
     enforce_stepper_hard_stop(stepper_angle, &stepper_angular_velocity);
     set_stepper_angular_vel(stepper_angular_velocity);
+
+    // Flash Red and Green every 250ms
+    if (led_ready && ++led_toggle_counter >= 25)
+    {
+      led_toggle_counter = 0;
+      is_led_red = !is_led_red;
+      pixels[0] = is_led_red ? RGB(0x00, 0x00, 0x00) : RGB(0x00, 0xFF, 0x00);
+      led_strip_update_rgb(led, pixels, STRIP_NUM_PIXELS);
+    }
 
     k_sleep(K_MSEC(kControlPeriodMs));
   }
