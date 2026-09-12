@@ -18,6 +18,7 @@
 		step-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
 		dir-gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
 		stepper-driver = <&a4988_driver>;
+		invert-direction;
 		counter = <&counter0>;
 	};
 

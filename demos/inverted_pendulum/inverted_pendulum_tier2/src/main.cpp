@@ -25,6 +25,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
+#include <algorithm>
 #include <zenbedded_rcl/codecs.hpp>
 #include <zenbedded_rcl/zenbedded_client.hpp>
 
@@ -33,16 +34,27 @@ LOG_MODULE_REGISTER(inverted_pendulum_tier2, LOG_LEVEL_INF);
 constexpr uint32_t kWifiConnectTimeout = 15000;  // ms
 constexpr uint32_t kIpv4AcquireTimeout = 30000;  // ms
 constexpr uint32_t kControlPeriodMs = 10;
+constexpr double kControlPeriodSec = kControlPeriodMs / 1000.0;
 constexpr uint32_t kCommandTimeoutMs = 200;
 
 // A stale command must stop the stepper rather than latch the last velocity forever.
 constexpr uint32_t kCommandTimeoutCycles = kCommandTimeoutMs / kControlPeriodMs;
 
 // Bracket the commanded rate to what an A4988 can actually step; outside it, stop instead.
-constexpr uint64_t kMinMicrostepIntervalNs = 20000;
+constexpr uint64_t kMinMicrostepIntervalNs = 60000;
 constexpr uint64_t kMaxMicrostepIntervalNs = 1000000000;
 
 constexpr uint32_t motor_steps_per_rev = 200;
+
+// Hard travel limit on the stepper position, measured from the boot-time zero.
+constexpr double kStepperAngleLimitRad = 135.0 * M_PI / 180.0;
+
+// How far ahead of the current control cycle to project the commanded velocity
+// before clamping and issuing it as a stepper_ctrl_move_to() target. 1.0 means
+// "just enough to cover this control period"; a slightly larger value (e.g. 2-3)
+// keeps the driver's move queue topped up so consecutive retargets don't cause
+// it to decelerate to a stop between control cycles.
+constexpr double kMoveToProjectionPeriods = 2.0;
 
 BUILD_ASSERT(
   DT_NODE_HAS_PROP(DT_ALIAS(stepper_driver), micro_step_res),
@@ -51,9 +63,20 @@ BUILD_ASSERT(
 constexpr uint32_t micro_step_res = DT_PROP_OR(DT_ALIAS(stepper_driver), micro_step_res, 1);
 constexpr int32_t micro_steps_per_rev = static_cast<int32_t>(motor_steps_per_rev * micro_step_res);
 
+// Fastest angular rate representable given kMinMicrostepIntervalNs.
+constexpr double kMaxAngularVelocityRadPerSec =
+  (1e9 / static_cast<double>(kMinMicrostepIntervalNs)) * (2.0 * M_PI) / micro_steps_per_rev;
+
 const device * stepper_driver = DEVICE_DT_GET(DT_ALIAS(stepper_driver));
 const device * stepper_ctrl = DEVICE_DT_GET(DT_ALIAS(stepper_ctrl));
 const device * encoder_driver = DEVICE_DT_GET(DT_ALIAS(encoder_driver));
+
+// Absolute microstep bounds corresponding to +-kStepperAngleLimitRad around the
+// boot-time zero. Every move_to() target is clamped into this range before being
+// sent to the driver, so the driver's own step-generation logic - not a polling
+// loop - is what actually prevents stepping past the limit.
+int32_t stepper_min_position = 0;
+int32_t stepper_max_position = 0;
 
 double microsteps_to_angle(int32_t microsteps)
 {
@@ -80,14 +103,15 @@ void set_stepper_angular_vel(double rads_per_sec)
   double microsteps_per_sec = fabs(rads_per_sec) * micro_steps_per_rev / (2 * M_PI);
   double interval_ns = 1e9 / microsteps_per_sec;
 
-  if (
-    !isfinite(interval_ns) || interval_ns < kMinMicrostepIntervalNs ||
-    interval_ns > kMaxMicrostepIntervalNs)
+  if (interval_ns < kMinMicrostepIntervalNs)
   {
-    LOG_WRN("Commanded velocity %f rad/s out of range, stopping", rads_per_sec);
     stop_stepper();
     return;
   }
+
+  interval_ns = std::clamp(
+    interval_ns, static_cast<double>(kMinMicrostepIntervalNs),
+    static_cast<double>(kMaxMicrostepIntervalNs));
 
   int ret = stepper_ctrl_set_microstep_interval(stepper_ctrl, static_cast<uint64_t>(interval_ns));
   if (ret != 0)
@@ -96,12 +120,23 @@ void set_stepper_angular_vel(double rads_per_sec)
     return;
   }
 
-  ret = stepper_ctrl_run(
-    stepper_ctrl,
-    (rads_per_sec > 0.0) ? STEPPER_CTRL_DIRECTION_POSITIVE : STEPPER_CTRL_DIRECTION_NEGATIVE);
+  double signed_microsteps_per_sec =
+    (rads_per_sec > 0.0) ? microsteps_per_sec : -microsteps_per_sec;
+  double projected_microsteps =
+    signed_microsteps_per_sec * kControlPeriodSec * kMoveToProjectionPeriods;
+
+  int32_t actual_position = 0;
+  stepper_ctrl_get_actual_position(stepper_ctrl, &actual_position);
+
+  double target_position = static_cast<double>(actual_position) + projected_microsteps;
+  target_position = std::clamp(
+    target_position, static_cast<double>(stepper_min_position),
+    static_cast<double>(stepper_max_position));
+
+  ret = stepper_ctrl_move_to(stepper_ctrl, static_cast<int32_t>(lround(target_position)));
   if (ret != 0)
   {
-    LOG_ERR("Failed to run stepper: %d", ret);
+    LOG_ERR("Failed to command stepper move: %d", ret);
   }
 }
 
@@ -122,6 +157,20 @@ bool get_encoder_angle_deg(double * angle_rad)
 
   *angle_rad = sensor_value_to_double(&val) * M_PI / 180;
   return true;
+}
+
+// Enforce the hard stepper travel limit in-place. If the commanded velocity would
+// drive the stepper further past +-kStepperAngleLimitRad, it is zeroed; velocity that moves
+// the stepper back toward the allowed range is left untouched. Recomputed every control
+// cycle from the true current position, so it self-corrects rather than latching.
+void enforce_stepper_hard_stop(double stepper_angle, double * stepper_angular_velocity)
+{
+  if (
+    (stepper_angle >= kStepperAngleLimitRad && *stepper_angular_velocity > 0.0) ||
+    (stepper_angle <= -kStepperAngleLimitRad && *stepper_angular_velocity < 0.0))
+  {
+    *stepper_angular_velocity = 0.0;
+  }
 }
 
 int main()
@@ -174,7 +223,7 @@ int main()
   k_sleep(K_MSEC(200));
 
   static ZenbeddedClient<RawCodec<zenbedded_state_t>, RawCodec<zenbedded_command_t>> client;
-  int ret = client.init(50);
+  int ret = client.init(100);
   if (ret != 0)
   {
     LOG_ERR("Failed to initialize ZenbeddedClient: %d", ret);
@@ -189,10 +238,14 @@ int main()
   }
 
   int32_t stepper_position = 0;
-  double stepper_angle = 0, encoder_angle = 0;
-  double stepper_angle_offset = 0, encoder_angle_offset = 0;
+  double stepper_angle = 0;
+  double stepper_angle_offset = 0;
+  double encoder_angle = M_PI;  // upside down position
+  double encoder_angle_offset = 0;
   double stepper_angular_velocity = 0;
 
+  // Zero reference for the stepper: whatever position it is in at boot becomes 0,
+  // so all reported/limited angles are relative to where the robot was powered on.
   ret = stepper_ctrl_get_actual_position(stepper_ctrl, &stepper_position);
   if (ret != 0)
   {
@@ -201,6 +254,14 @@ int main()
   }
   stepper_angle_offset = microsteps_to_angle(stepper_position);
 
+  int32_t stepper_limit_microsteps =
+    static_cast<int32_t>(lround(kStepperAngleLimitRad / (2.0 * M_PI) * micro_steps_per_rev));
+  stepper_min_position = stepper_position - stepper_limit_microsteps;
+  stepper_max_position = stepper_position + stepper_limit_microsteps;
+
+  // Zero reference for the encoder: whatever the pendulum's angle is at boot becomes 0.
+  // The pendulum must be hanging down (upside-down relative to the upright balance target)
+  // when the board powers on, so this zero corresponds to that resting/down position.
   if (!get_encoder_angle_deg(&encoder_angle_offset))
   {
     LOG_ERR("Failed to read initial encoder angle; cannot calibrate the pendulum zero");
@@ -209,6 +270,10 @@ int main()
 
   uint32_t last_command_count = client.accepted_command_count();
   uint32_t cycles_since_command = 0;
+  uint32_t print_count = 0;
+  double commanded_acceleration = 0.0;
+  double prev_stepper_angle = stepper_angle;
+  double prev_encoder_angle = encoder_angle;
 
   while (true)
   {
@@ -220,11 +285,37 @@ int main()
     double raw_encoder_angle = 0;
     if (get_encoder_angle_deg(&raw_encoder_angle))
     {
-      encoder_angle = raw_encoder_angle - encoder_angle_offset;
+      double angle = fmod(raw_encoder_angle - encoder_angle_offset + M_PI, 2 * M_PI);
+      if (angle > M_PI)
+      {
+        angle -= 2.0 * M_PI;
+      }
+      else if (angle <= -M_PI)
+      {
+        angle += 2.0 * M_PI;
+      }
+      encoder_angle = angle;
     }
 
+    double motor_joint_velocity = (stepper_angle - prev_stepper_angle) / kControlPeriodSec;
+    double pendulum_joint_velocity = (encoder_angle - prev_encoder_angle) / kControlPeriodSec;
+    prev_stepper_angle = stepper_angle;
+    prev_encoder_angle = encoder_angle;
+
     zenbedded_state_t state_val{
-      .stepper_motor_position = stepper_angle, .magnetic_encoder_position = encoder_angle};
+      .motor_joint_position = stepper_angle,
+      .motor_joint_velocity = motor_joint_velocity,
+      .pendulum_joint_position = encoder_angle,
+      .pendulum_joint_velocity = pendulum_joint_velocity};
+
+    // if (++print_count == 100) {
+    //   print_count = 0;
+    //   printk(
+    //     "stepper_angle=%.4f rad, stepper_vel=%.4f rad/s, "
+    //     "encoder_angle=%.4f rad, encoder_vel=%.4f rad/s\n",
+    //     stepper_angle, motor_joint_velocity, encoder_angle, pendulum_joint_velocity);
+    // }
+
     zenbedded_command_t cmd_val;
 
     client.write_state(state_val);
@@ -236,19 +327,34 @@ int main()
       cycles_since_command = 0;
       if (client.read_command(cmd_val))
       {
-        stepper_angular_velocity = cmd_val.stepper_motor_velocity;
+        commanded_acceleration = cmd_val.motor_joint_acceleration;
       }
     }
     else if (cycles_since_command < kCommandTimeoutCycles)
     {
       ++cycles_since_command;
     }
-    else if (stepper_angular_velocity != 0.0)
+    else if (commanded_acceleration != 0.0 || stepper_angular_velocity != 0.0)
     {
       LOG_WRN("No command for %u ms, stopping stepper", kCommandTimeoutMs);
+      commanded_acceleration = 0.0;
       stepper_angular_velocity = 0.0;
     }
 
+    // Integrate the (possibly stale-but-not-yet-timed-out) commanded acceleration into
+    // velocity every control cycle, not just when a new command arrives.
+    stepper_angular_velocity += commanded_acceleration * kControlPeriodSec;
+    stepper_angular_velocity = std::clamp(
+      stepper_angular_velocity, -kMaxAngularVelocityRadPerSec, kMaxAngularVelocityRadPerSec);
+
+    // If the pendulum falls outside +-20 degrees, stop moving.
+    if (fabs(encoder_angle) > (20.0 * M_PI / 180.0))
+    {
+      stepper_angular_velocity = 0.0;
+      commanded_acceleration = 0.0;
+    }
+
+    enforce_stepper_hard_stop(stepper_angle, &stepper_angular_velocity);
     set_stepper_angular_vel(stepper_angular_velocity);
 
     k_sleep(K_MSEC(kControlPeriodMs));
